@@ -47,13 +47,19 @@ class PrefrontalCortex
     )
 
     if trade_plan["setup_grade"] == "A"
+      log("PM: Grade A plan for #{trade_plan['side']} #{symbol}")
       @ns.broadcast(:trade_plan_generated, trade_plan)
     else
-      log("PM: Grade #{trade_plan['setup_grade']} — skipped.")
+      log("PM: Grade #{trade_plan['setup_grade']} — skipped")
     end
   end
 
   def alpha_wave_pulse(snapshot)
+    unless NemesisBrain::LLM_ENABLED
+      log("PM: LLM disabled, skipping macro bias pulse")
+      return
+    end
+
     funding_rates = snapshot[:funding_rates]
     open_interest = snapshot[:open_interest]
     prompt = <<~PROMPT
@@ -66,6 +72,8 @@ class PrefrontalCortex
 
     bias = Oj.load(ask_llm(prompt))
     @ns.broadcast(:macro_bias_updated, bias)
+  rescue StandardError => e
+    log("PM: Macro bias skip (#{e.message})")
   end
 
   private
@@ -91,7 +99,9 @@ class PrefrontalCortex
       #{Oj.dump(TRADE_PLAN_SCHEMA)}
     PROMPT
 
-    Oj.load(ask_llm(prompt))
+    Oj.load(ask_llm(prompt, TRADE_PLAN_SCHEMA))
+  rescue StandardError
+    paper_trade_plan(symbol:, direction:, price:)
   end
 
   def paper_trade_plan(symbol:, direction:, price:)
@@ -113,9 +123,10 @@ class PrefrontalCortex
     }
   end
 
-  def ask_llm(prompt)
+  def ask_llm(prompt, schema = nil)
     chat = RubyLLM.chat(model: NemesisBrain::REASONING_MODEL, provider: :ollama)
-    chat.ask(prompt, response_format: { type: "json_object" }).content
+    chat = chat.with_schema(schema) if schema
+    chat.ask(prompt).content
   end
 
   def fetch_atr_pct(_symbol)

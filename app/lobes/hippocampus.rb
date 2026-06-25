@@ -9,7 +9,6 @@ class Hippocampus
   def initialize
     @memory_store = []
     @qdrant = build_qdrant_client
-    @embedder = build_embedder
     ensure_collection_exists if @qdrant
   end
 
@@ -72,16 +71,13 @@ class Hippocampus
     Qdrant::Client.new(url: ENV["QDRANT_URL"], api_key: ENV["QDRANT_API_KEY"])
   end
 
-  def build_embedder
-    return nil unless NemesisBrain::LLM_ENABLED
-
-    RubyLLM.embed(model: NemesisBrain::EMBED_MODEL, provider: :ollama)
-  end
-
   def embed(text)
-    return pseudo_vector(text) unless @embedder
+    return pseudo_vector(text) unless NemesisBrain::LLM_ENABLED
 
-    @embedder.embed(text).embedding
+    RubyLLM.embed(text, model: NemesisBrain::EMBED_MODEL, provider: :ollama).vectors.first
+  rescue StandardError => e
+    warn "[Hippocampus] Embedding failed (#{e.message}). Using pseudo-vector."
+    pseudo_vector(text)
   end
 
   def pseudo_vector(text)

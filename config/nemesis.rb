@@ -12,13 +12,13 @@ RubyLLM.configure do |config|
 end
 
 module NemesisBrain
-  REASONING_MODEL = ENV.fetch("NEMESIS_REASONING_MODEL", "llama3:70b")
-  EMBED_MODEL = ENV.fetch("NEMESIS_EMBED_MODEL", "nomic-embed-text")
-  BINANCE_REST = ENV.fetch("BINANCE_REST", "https://testnet.binancefuture.com")
-  BINANCE_WS = ENV.fetch("BINANCE_WS", "wss://stream.binancefuture.com")
+  REASONING_MODEL = ENV.fetch("NEMESIS_REASONING_MODEL", "deepseek-v4-flash")
+  EMBED_MODEL = ENV.fetch("NEMESIS_EMBED_MODEL", "deepseek-v4-flash")
+  BINANCE_REST = ENV.fetch("BINANCE_REST", "https://fapi.binance.com")
+  BINANCE_WS = ENV.fetch("BINANCE_WS", "wss://fstream.binance.com")
   DEFAULT_SYMBOL = ENV.fetch("NEMESIS_SYMBOL", "btcusdt")
   DEFAULT_EQUITY = ENV.fetch("NEMESIS_EQUITY", "10000").to_f
   PAPER_MODE = ENV.fetch("NEMESIS_PAPER_MODE", "true") == "true"
-  LLM_ENABLED = ENV["OLLAMA_API_KEY"].to_s.strip != ""
+  LLM_ENABLED = ENV.fetch("NEMESIS_LLM_ENABLED", "false") == "true" && ENV["OLLAMA_API_KEY"].to_s.strip != ""
   QDRANT_ENABLED = ENV["QDRANT_URL"].to_s.strip != ""
 end
