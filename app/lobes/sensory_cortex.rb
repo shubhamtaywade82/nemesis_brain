@@ -19,17 +19,15 @@ class SensoryCortex
 
   def start(symbol: NemesisBrain::DEFAULT_SYMBOL)
     @symbol = symbol
-    Async { stream_binance(symbol) }
+    Thread.new { stream_binance(symbol) }
   end
-
-  private
 
   def log(message)
     puts(NemesisBrain::Log.colorize("[#{Time.now.strftime('%H:%M:%S')}] #{message}", :yellow))
   end
 
   def stream_binance(symbol)
-    require "async/websocket/client"
+    require "websocket-client-simple"
 
     streams = [
       "#{symbol}@aggTrade",
@@ -38,16 +36,43 @@ class SensoryCortex
     ]
     url = "#{NemesisBrain::BINANCE_WS}/stream?streams=#{streams.join('/')}"
 
-    Async::WebSocket::Client.connect(url) do |connection|
-      while (message = connection.read)
-        route_event(Oj.load(message))
+    ws = WebSocket::Client::Simple.connect(url)
+    ctx = self
+
+    ws.on :message do |event|
+      ctx.route_event(Oj.load(event.data))
+    rescue Oj::ParseError => e
+      ctx.log("WebSocket parse error: #{e.message}") if NemesisBrain::VERBOSE_LOGS
+    rescue StandardError => e
+      ctx.log("WebSocket message handler error: #{e.class}: #{e.message}") if NemesisBrain::VERBOSE_LOGS
+    end
+    ws.on :error do |event|
+      if NemesisBrain::VERBOSE_LOGS
+        puts(NemesisBrain::Log.colorize("WebSocket error: #{event.inspect}", :red))
+        if event.respond_to?(:backtrace)
+          puts event.backtrace.first(10).join("\n")
+        end
       end
     end
+    ws.on :close do |event|
+      code = event.respond_to?(:code) ? event.code : "unknown"
+      reason = event.respond_to?(:reason) ? event.reason : ""
+      ctx.log("WebSocket closed: #{code} #{reason}") if NemesisBrain::VERBOSE_LOGS
+      sleep 5
+      stream_binance(symbol)
+    end
+  rescue StandardError => e
+    log("WebSocket connection failed: #{e.class}: #{e.message}")
+    sleep 5
+    retry
   end
 
   def route_event(payload)
+    return unless payload.is_a?(Hash)
+
     stream = payload["stream"]
     data = payload["data"]
+    return unless stream && data
 
     case stream
     when /aggTrade/ then process_tape(data)

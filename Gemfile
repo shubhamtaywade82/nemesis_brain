@@ -11,7 +11,7 @@ gem "oj", "~> 3.16"
 gem "wisper", "~> 2.0"
 gem "concurrent-ruby", "~> 1.2"
 gem "async", "~> 2.8"
-gem "async-websocket", "~> 0.25"
+gem "websocket-client-simple", "~> 0.9"
 
 gem "faraday", "~> 2.9"
 gem "faraday-retry", "~> 2.2"
