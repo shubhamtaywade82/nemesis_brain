@@ -27,8 +27,6 @@ class BinanceFuturesClient
   end
 
   def get_funding_rate(symbol)
-    return { "symbol" => symbol, "fundingRate" => "0.0000" } if @paper && !api_key_configured?
-
     result = public_get("/fapi/v1/fundingRate", symbol:, limit: 1)
     result.is_a?(Array) ? result.first : { "symbol" => symbol, "fundingRate" => "0.0000" }
   rescue StandardError
@@ -36,8 +34,6 @@ class BinanceFuturesClient
   end
 
   def get_open_interest(symbol)
-    return { "symbol" => symbol, "openInterest" => "0" } if @paper && !api_key_configured?
-
     result = public_get("/fapi/v1/openInterest", symbol:)
     result.is_a?(Hash) ? result : { "symbol" => symbol, "openInterest" => "0" }
   rescue StandardError

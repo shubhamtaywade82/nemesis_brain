@@ -79,6 +79,7 @@ class PrefrontalCortex
     log("Macro bias prompt sent to LLM") if NemesisBrain::VERBOSE_LOGS
     bias = Oj.load(clean_llm_json(ask_llm(prompt)))
     log("Macro bias result: #{Oj.dump(bias)}") if NemesisBrain::VERBOSE_LOGS
+    $stdout.flush if NemesisBrain::VERBOSE_LOGS
     @ns.broadcast(:macro_bias_updated, bias)
   rescue StandardError => e
     log("PM: Macro bias skip (#{e.message})")
