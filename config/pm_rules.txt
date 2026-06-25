@@ -1,0 +1,4 @@
+# Portfolio Manager core rules — appended by nightly post-mortem
+
+# Never adjust a stop loss once the trade is entered.
+# Only take A-grade setups with order-book confluence.
