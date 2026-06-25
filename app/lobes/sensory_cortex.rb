@@ -19,8 +19,6 @@ class SensoryCortex
 
   def start(symbol: NemesisBrain::DEFAULT_SYMBOL)
     @symbol = symbol
-    return start_paper_feed if NemesisBrain::PAPER_MODE
-
     Async { stream_binance(symbol) }
   end
 
@@ -28,35 +26,6 @@ class SensoryCortex
 
   def log(message)
     puts(NemesisBrain::Log.colorize("[#{Time.now.strftime('%H:%M:%S')}] #{message}", :yellow))
-  end
-
-  def start_paper_feed
-    Async do
-      loop do
-        simulate_absorption_signal
-        sleep 30
-      end
-    end
-  end
-
-  def simulate_absorption_signal
-    price = 50_000 + rand(-500..500)
-    @prices << price
-    @cvd << (rand > 0.5 ? 1_200_000 : -1_200_000)
-    @cvd.shift if @cvd.size > CVD_WINDOW_SIZE
-
-    @ns.broadcast(
-      :tape_signal_detected,
-      {
-        type: :absorption,
-        direction: @cvd.last.positive? ? :long : :short,
-        delta: @cvd.last,
-        price:,
-        symbol: @symbol.upcase,
-        ob_imbalance: 0.15,
-        context: "Paper-mode absorption at #{price}"
-      }
-    )
   end
 
   def stream_binance(symbol)

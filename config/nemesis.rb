@@ -46,7 +46,7 @@ module NemesisBrain
   BINANCE_WS = ENV.fetch("BINANCE_WS", "wss://fstream.binance.com")
   DEFAULT_SYMBOL = ENV.fetch("NEMESIS_SYMBOL", "btcusdt")
   DEFAULT_EQUITY = ENV.fetch("NEMESIS_EQUITY", "10000").to_f
-  PAPER_MODE = ENV.fetch("NEMESIS_PAPER_MODE", "true") == "true"
+  PAPER_MODE = ENV.fetch("NEMESIS_PAPER_MODE", "false") == "true"
   LLM_ENABLED = ENV.fetch("NEMESIS_LLM_ENABLED", "false") == "true" && ENV["OLLAMA_API_KEY"].to_s.strip != ""
   QDRANT_ENABLED = ENV["QDRANT_URL"].to_s.strip != ""
   VERBOSE_LOGS = ENV["VERBOSE_LOGS"] == "true"

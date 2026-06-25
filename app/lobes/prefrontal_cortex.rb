@@ -48,11 +48,15 @@ class PrefrontalCortex
       memories:
     )
 
-    if trade_plan["setup_grade"] == "A"
-      log("PM: Grade A plan for #{trade_plan['side']} #{symbol}")
-      @ns.broadcast(:trade_plan_generated, trade_plan)
+    if trade_plan
+      if trade_plan["setup_grade"] == "A"
+        log("PM: Grade A plan for #{trade_plan['side']} #{symbol}")
+        @ns.broadcast(:trade_plan_generated, trade_plan)
+      else
+        log("PM: Grade #{trade_plan['setup_grade']} — skipped")
+      end
     else
-      log("PM: Grade #{trade_plan['setup_grade']} — skipped")
+      log("PM: No trade plan for #{symbol} #{direction.to_s.upcase}")
     end
   end
 
@@ -83,7 +87,10 @@ class PrefrontalCortex
   private
 
   def generate_trade_plan(symbol:, direction:, price:, atr_pct:, context:, memories:)
-    return paper_trade_plan(symbol:, direction:, price:) unless NemesisBrain::LLM_ENABLED
+    unless NemesisBrain::LLM_ENABLED
+      log("LLM disabled — skipping plan generation for #{symbol} #{direction.to_s.upcase}")
+      return nil
+    end
 
     memory_text = if memories.any?
                     "Past similar episodes:\n#{memories.join("\n")}"
@@ -107,27 +114,9 @@ class PrefrontalCortex
     plan = Oj.load(clean_llm_json(ask_llm(prompt, TRADE_PLAN_SCHEMA)))
     log("Trade plan result: #{Oj.dump(plan)}") if NemesisBrain::VERBOSE_LOGS
     plan
-  rescue StandardError
-    paper_trade_plan(symbol:, direction:, price:)
-  end
-
-  def paper_trade_plan(symbol:, direction:, price:)
-    stop_distance = price * 0.008
-    side = direction.to_s.upcase
-    invalidation = side == "LONG" ? price - stop_distance : price + stop_distance
-    target1 = side == "LONG" ? price + stop_distance : price - stop_distance
-    target2 = side == "LONG" ? price + (stop_distance * 3) : price - (stop_distance * 3)
-
-    {
-      "thesis" => "Paper-mode #{side} absorption setup",
-      "symbol" => symbol,
-      "side" => side,
-      "entry_zone" => { "low" => price * 0.999, "high" => price * 1.001 },
-      "invalidation_price" => invalidation.round(2),
-      "targets" => [target1.round(2), target2.round(2)],
-      "setup_grade" => "A",
-      "confidence" => 0.75
-    }
+  rescue StandardError => e
+    log("Trade plan generation failed: #{e.message}")
+    nil
   end
 
   def ask_llm(prompt, schema = nil)

@@ -6,6 +6,7 @@ require "openssl"
 require "oj"
 
 class BinanceFuturesClient
+  class TradeDisabledError < StandardError; end
   def initialize(api_key:, secret_key:, base_url: NemesisBrain::BINANCE_REST, recv_window: 5000)
     @api_key = api_key
     @secret = secret_key
@@ -20,62 +21,71 @@ class BinanceFuturesClient
   def get_price(symbol)
     return paper_price(symbol) if @paper
 
-    signed_get("/fapi/v1/ticker/price", symbol:)["price"].to_f
+    public_get("/fapi/v1/ticker/price", symbol:)["price"].to_f
+  rescue StandardError
+    paper_price(symbol)
   end
 
   def get_funding_rate(symbol)
-    return { "symbol" => symbol, "fundingRate" => "0.0001" } if @paper
+    return { "symbol" => symbol, "fundingRate" => "0.0000" } if @paper && !api_key_configured?
 
-    signed_get("/fapi/v1/fundingRate", symbol:, limit: 1).first
+    result = public_get("/fapi/v1/fundingRate", symbol:, limit: 1)
+    result.is_a?(Array) ? result.first : { "symbol" => symbol, "fundingRate" => "0.0000" }
+  rescue StandardError
+    { "symbol" => symbol, "fundingRate" => "0.0000" }
   end
 
   def get_open_interest(symbol)
-    return { "symbol" => symbol, "openInterest" => "100000" } if @paper
+    return { "symbol" => symbol, "openInterest" => "0" } if @paper && !api_key_configured?
 
-    signed_get("/fapi/v1/openInterest", symbol:)
+    result = public_get("/fapi/v1/openInterest", symbol:)
+    result.is_a?(Hash) ? result : { "symbol" => symbol, "openInterest" => "0" }
+  rescue StandardError
+    { "symbol" => symbol, "openInterest" => "0" }
   end
 
   def set_leverage(symbol:, leverage:)
-    return { "leverage" => leverage, "symbol" => symbol } if @paper
-
-    signed_post("/fapi/v1/leverage", symbol:, leverage:)
+    raise TradeDisabledError, "Order placement is disabled in analysis-only mode"
   end
 
   def place_limit_order(symbol:, side:, size_usd:, price:)
-    return paper_order(symbol:, side:, size_usd:, price:, type: "LIMIT") if @paper
-
-    quantity = (size_usd / price).round(3)
-    signed_post(
-      "/fapi/v1/order",
-      symbol:,
-      side: side.upcase,
-      type: "LIMIT",
-      price: price.round(2),
-      quantity:,
-      timeInForce: "GTC",
-      reduceOnly: false
-    )
+    raise TradeDisabledError, "Order placement is disabled in analysis-only mode"
   end
 
   def place_stop_order(symbol:, side:, quantity:, stop_price:)
-    return paper_order(symbol:, side:, quantity:, stop_price:, type: "STOP_MARKET") if @paper
+    raise TradeDisabledError, "Order placement is disabled in analysis-only mode"
+  end
 
-    signed_post(
-      "/fapi/v1/order",
-      symbol:,
-      side: side.upcase,
-      type: "STOP_MARKET",
-      stopPrice: stop_price.round(2),
-      quantity:,
-      closePosition: false
-    )
+  def dry_run_order(symbol:, side:, size_usd:, price:)
+    quantity = (size_usd / price).round(3)
+    {
+      "symbol" => symbol,
+      "side" => side.upcase,
+      "type" => "LIMIT",
+      "executedQty" => quantity,
+      "price" => price.round(2),
+      "status" => "dry_run"
+    }
+  end
+
+  def analysis_only?
+    !api_key_configured? || @paper
   end
 
   private
 
   def paper_price(symbol)
     @paper_prices ||= {}
-    @paper_prices[symbol] ||= 50_000.0
+    @paper_prices[symbol] ||= 0.0
+  end
+
+  def public_get(path, params = {})
+    response = @conn.get(path, params)
+    Oj.load(response.body)
+  end
+
+  def api_key_configured?
+    @api_key && !@api_key.empty? && @api_key != "paper"
   end
 
   def paper_order(symbol:, side:, size_usd: nil, price: nil, quantity: nil, stop_price: nil, type:)
