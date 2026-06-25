@@ -1,0 +1,1663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nemesis — Cognitive Trading Brain</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600&family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500&display=swap');
+
+  :root {
+    --bg:        #0a0c0f;
+    --surface:   #0f1218;
+    --border:    #1a1f2e;
+    --accent:    #00d4ff;
+    --accent2:   #7c3aed;
+    --accent3:   #10b981;
+    --warn:      #f59e0b;
+    --danger:    #ef4444;
+    --text:      #e2e8f0;
+    --muted:     #64748b;
+    --dim:       #334155;
+    --code-bg:   #060810;
+    --glow:      rgba(0,212,255,0.08);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* ── Header ── */
+  .hero {
+    position: relative;
+    padding: 64px 40px 48px;
+    border-bottom: 1px solid var(--border);
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(0,212,255,0.07) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .hero-eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+  .hero h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(36px, 5vw, 64px);
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.03em;
+    background: linear-gradient(135deg, #fff 0%, var(--accent) 60%, var(--accent2) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .hero-sub {
+    margin-top: 16px;
+    color: var(--muted);
+    font-weight: 300;
+    max-width: 600px;
+    font-size: 15px;
+  }
+  .hero-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 28px;
+  }
+  .chip {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 4px;
+    border: 1px solid;
+  }
+  .chip-blue  { border-color: rgba(0,212,255,0.3); color: var(--accent); background: rgba(0,212,255,0.05); }
+  .chip-purple{ border-color: rgba(124,58,237,0.4); color: #a78bfa; background: rgba(124,58,237,0.07); }
+  .chip-green { border-color: rgba(16,185,129,0.3); color: var(--accent3); background: rgba(16,185,129,0.05); }
+  .chip-amber { border-color: rgba(245,158,11,0.3); color: var(--warn); background: rgba(245,158,11,0.05); }
+
+  /* ── Nav tabs ── */
+  .nav {
+    display: flex;
+    overflow-x: auto;
+    gap: 0;
+    border-bottom: 1px solid var(--border);
+    padding: 0 40px;
+    background: var(--surface);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .nav::-webkit-scrollbar { height: 0; }
+  .nav-tab {
+    font-family: 'Syne', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 14px 20px;
+    cursor: pointer;
+    color: var(--muted);
+    border-bottom: 2px solid transparent;
+    white-space: nowrap;
+    transition: all 0.2s;
+    user-select: none;
+  }
+  .nav-tab:hover { color: var(--text); }
+  .nav-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* ── Layout ── */
+  .container { max-width: 1100px; margin: 0 auto; padding: 40px; }
+  .section { display: none; }
+  .section.active { display: block; }
+
+  /* ── Section titles ── */
+  .section-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 8px;
+  }
+  .section-desc { color: var(--muted); font-size: 14px; margin-bottom: 32px; }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 24px;
+    margin-bottom: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(0,212,255,0.2), transparent);
+  }
+  .card-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .card-body { color: var(--muted); font-size: 13.5px; line-height: 1.7; }
+
+  /* ── Brain map grid ── */
+  .brain-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+  .lobe {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    transition: border-color 0.2s, transform 0.2s;
+    cursor: default;
+  }
+  .lobe:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .lobe-icon { font-size: 24px; margin-bottom: 10px; }
+  .lobe-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    margin-bottom: 4px;
+  }
+  .lobe-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    margin-bottom: 8px;
+  }
+  .lobe-role {
+    font-size: 12px;
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+    margin-bottom: 8px;
+  }
+  .lobe-desc { font-size: 13px; color: var(--muted); line-height: 1.6; }
+  .lobe-tech {
+    margin-top: 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 3px;
+    background: rgba(0,212,255,0.07);
+    color: var(--accent);
+    border: 1px solid rgba(0,212,255,0.15);
+  }
+  .tag-purple { background: rgba(124,58,237,0.07); color: #a78bfa; border-color: rgba(124,58,237,0.2); }
+  .tag-green  { background: rgba(16,185,129,0.07); color: var(--accent3); border-color: rgba(16,185,129,0.15); }
+  .tag-amber  { background: rgba(245,158,11,0.07); color: var(--warn); border-color: rgba(245,158,11,0.15); }
+  .tag-red    { background: rgba(239,68,68,0.07); color: var(--danger); border-color: rgba(239,68,68,0.15); }
+
+  /* ── Code blocks ── */
+  .code-block {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    margin: 16px 0;
+  }
+  .code-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(255,255,255,0.02);
+  }
+  .code-filename {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .code-lang {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--accent3);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+  .code-body {
+    padding: 20px;
+    overflow-x: auto;
+  }
+  pre {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12.5px;
+    line-height: 1.7;
+    color: #cdd6f4;
+    white-space: pre;
+    margin: 0;
+  }
+
+  /* syntax highlighting classes */
+  .kw   { color: #cba6f7; }  /* keyword */
+  .str  { color: #a6e3a1; }  /* string */
+  .cmt  { color: #6c7086; font-style: italic; }  /* comment */
+  .num  { color: #fab387; }  /* number */
+  .sym  { color: #f9e2af; }  /* symbol */
+  .cls  { color: #89dceb; }  /* class name */
+  .mth  { color: #89b4fa; }  /* method */
+  .var  { color: #cdd6f4; }  /* variable */
+
+  /* ── Gem table ── */
+  .gem-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .gem-table th {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-align: left;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .gem-table td {
+    padding: 10px 14px;
+    border-bottom: 1px solid rgba(26,31,46,0.6);
+    vertical-align: top;
+  }
+  .gem-table tr:last-child td { border-bottom: none; }
+  .gem-table tr:hover td { background: rgba(0,212,255,0.02); }
+  .gem-name {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--accent);
+    font-size: 12px;
+    white-space: nowrap;
+  }
+  .gem-version {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--muted);
+    font-size: 11px;
+  }
+  .gem-purpose { color: var(--text); }
+  .gem-category {
+    font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* ── Flow diagram ── */
+  .flow {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin: 24px 0;
+  }
+  .flow-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 16px 0;
+    border-left: 2px solid var(--border);
+    margin-left: 20px;
+    padding-left: 24px;
+    position: relative;
+  }
+  .flow-step::before {
+    content: attr(data-n);
+    position: absolute;
+    left: -10px;
+    top: 18px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: var(--bg);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+  }
+  .flow-step:last-child { border-color: transparent; }
+  .flow-step-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    margin-bottom: 4px;
+  }
+  .flow-step-desc { color: var(--muted); font-size: 13px; }
+
+  /* ── Risk table ── */
+  .risk-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 16px;
+  }
+  .risk-item {
+    background: rgba(239,68,68,0.04);
+    border: 1px solid rgba(239,68,68,0.15);
+    border-radius: 6px;
+    padding: 14px;
+  }
+  .risk-item.safe {
+    background: rgba(16,185,129,0.04);
+    border-color: rgba(16,185,129,0.15);
+  }
+  .risk-item-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--danger);
+    margin-bottom: 6px;
+  }
+  .risk-item.safe .risk-item-label { color: var(--accent3); }
+  .risk-item-text { font-size: 13px; color: var(--text); }
+
+  /* ── Architecture diagram ── */
+  .arch-diagram {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 24px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.9;
+    overflow-x: auto;
+  }
+  .arch-diagram .node { color: var(--accent); }
+  .arch-diagram .arrow { color: var(--dim); }
+  .arch-diagram .label { color: var(--accent3); }
+
+  /* ── Collapsible ── */
+  .collapsible { margin-bottom: 12px; }
+  .collapsible-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    user-select: none;
+    transition: border-color 0.2s;
+  }
+  .collapsible-header:hover { border-color: var(--dim); }
+  .collapsible-header.open { border-color: var(--accent); border-radius: 8px 8px 0 0; }
+  .collapsible-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .collapsible-arrow {
+    font-size: 10px;
+    color: var(--muted);
+    transition: transform 0.2s;
+  }
+  .collapsible-header.open .collapsible-arrow { transform: rotate(180deg); }
+  .collapsible-body {
+    display: none;
+    background: var(--surface);
+    border: 1px solid var(--accent);
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    padding: 20px;
+  }
+  .collapsible-body.open { display: block; }
+
+  /* ── Divider ── */
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 32px 0;
+  }
+
+  /* ── Pulse indicator ── */
+  .pulse {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--accent3);
+    margin-right: 6px;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%       { opacity: 0.4; transform: scale(0.8); }
+  }
+
+  /* ── Warning callout ── */
+  .callout {
+    border-left: 3px solid;
+    padding: 14px 16px;
+    border-radius: 0 6px 6px 0;
+    margin: 16px 0;
+    font-size: 13px;
+  }
+  .callout-warn {
+    border-color: var(--warn);
+    background: rgba(245,158,11,0.05);
+    color: #fcd34d;
+  }
+  .callout-danger {
+    border-color: var(--danger);
+    background: rgba(239,68,68,0.05);
+    color: #fca5a5;
+  }
+  .callout-info {
+    border-color: var(--accent);
+    background: rgba(0,212,255,0.05);
+    color: #7dd3fc;
+  }
+  .callout-success {
+    border-color: var(--accent3);
+    background: rgba(16,185,129,0.05);
+    color: #6ee7b7;
+  }
+
+  @media (max-width: 640px) {
+    .hero { padding: 40px 20px; }
+    .nav { padding: 0 16px; }
+    .container { padding: 24px 20px; }
+    .brain-grid { grid-template-columns: 1fr; }
+    .risk-grid { grid-template-columns: 1fr; }
+    .nav-tab { padding: 12px 14px; font-size: 11px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── HERO ── -->
+<div class="hero">
+  <div class="hero-eyebrow">⬡ Nemesis Framework · Ruby + Ollama Cloud</div>
+  <h1>The Cognitive<br>Trading Brain</h1>
+  <p class="hero-sub">A complete architecture for building an autonomous crypto futures agent that perceives, reasons, remembers, and executes — like a professional prop trading desk, not a script.</p>
+  <div class="hero-chips">
+    <span class="chip chip-blue">Ollama Cloud LLM</span>
+    <span class="chip chip-blue">ruby_llm</span>
+    <span class="chip chip-blue">langchainrb</span>
+    <span class="chip chip-purple">Binance FAPI</span>
+    <span class="chip chip-purple">async-websocket</span>
+    <span class="chip chip-green">Qdrant RAG</span>
+    <span class="chip chip-green">pgvector</span>
+    <span class="chip chip-amber">Kelly Criterion</span>
+    <span class="chip chip-amber">CVD / Order Flow</span>
+  </div>
+</div>
+
+<!-- ── NAV ── -->
+<nav class="nav" id="nav">
+  <div class="nav-tab active" onclick="showTab('architecture')">Architecture</div>
+  <div class="nav-tab" onclick="showTab('setup')">Setup & Config</div>
+  <div class="nav-tab" onclick="showTab('sensory')">Sensory Cortex</div>
+  <div class="nav-tab" onclick="showTab('reasoning')">Reasoning & Intent</div>
+  <div class="nav-tab" onclick="showTab('memory')">Hippocampus</div>
+  <div class="nav-tab" onclick="showTab('risk')">Risk CRO</div>
+  <div class="nav-tab" onclick="showTab('execution')">Execution</div>
+  <div class="nav-tab" onclick="showTab('lifecycle')">Daily Lifecycle</div>
+  <div class="nav-tab" onclick="showTab('gems')">Gem Stack</div>
+</nav>
+
+<!-- ════════════════════════════════════════ -->
+<!-- TAB: ARCHITECTURE -->
+<!-- ════════════════════════════════════════ -->
+<div class="section active" id="section-architecture">
+<div class="container">
+  <div class="section-title">The Cognitive Architecture</div>
+  <p class="section-desc">Nemesis maps biological brain lobes to institutional trading desk roles. Each lobe is a decoupled service communicating via a Pub/Sub nervous system — never direct calls.</p>
+
+  <div class="arch-diagram">
+<span class="node">Binance WebSocket</span>  <span class="arrow">──────►</span>  <span class="node">SensoryCortex</span>  <span class="arrow">──( tape tick )──►</span>  <span class="node">NervousSystem</span>
+                                                                                             <span class="arrow">│</span>
+                          <span class="arrow">┌────────────────────────────────────────────────────────────┘</span>
+                          <span class="arrow">│</span>
+                          <span class="arrow">├──►</span> <span class="label">:market_regime_changed</span>  <span class="arrow">──►</span>  <span class="node">PrefrontalCortex (Ollama llama3:70b)</span>
+                          <span class="arrow">│                                                    │ :intent_generated</span>
+                          <span class="arrow">│                                                    ▼</span>
+                          <span class="arrow">│</span>                                           <span class="node">Amygdala (CRO)</span>
+                          <span class="arrow">│                                                    │ :approved_order</span>
+                          <span class="arrow">│                                                    ▼</span>
+                          <span class="arrow">│</span>                                           <span class="node">MotorCortex (Iceberg TWAP)</span>
+                          <span class="arrow">│                                                    │ :trade_executed</span>
+                          <span class="arrow">│                                                    ▼</span>
+                          <span class="arrow">└──────────────────────────────────────────►</span> <span class="node">Hippocampus (Qdrant)</span>
+                                                                             <span class="arrow">│</span>
+                          <span class="arrow">◄───────────────────────────────────────────</span> <span class="label">episodic recall on next signal</span>
+</div>
+
+  <div class="brain-grid">
+
+    <div class="lobe">
+      <div class="lobe-icon">👁️</div>
+      <div class="lobe-label">Sensory Cortex</div>
+      <div class="lobe-title">Tape Reader</div>
+      <div class="lobe-role">QUANT / MARKET DATA</div>
+      <div class="lobe-desc">Reads raw Binance WebSocket streams: trades, order book L2, funding rates, liquidation events. Computes CVD (Cumulative Volume Delta) and detects absorption / exhaustion in real time.</div>
+      <div class="lobe-tech">
+        <span class="tag">async-websocket</span>
+        <span class="tag">numo-narray</span>
+        <span class="tag tag-green">redis pub/sub</span>
+      </div>
+    </div>
+
+    <div class="lobe">
+      <div class="lobe-icon">🧠</div>
+      <div class="lobe-label">Prefrontal Cortex</div>
+      <div class="lobe-title">Portfolio Manager</div>
+      <div class="lobe-role">SYSTEM 2 · OLLAMA CLOUD</div>
+      <div class="lobe-desc">The LLM reasoning layer. Synthesises tape signals + episodic memories into a structured Trade Plan with entry zone, invalidation price, R:R targets, and a setup grade. Only "A" grade plans pass to CRO.</div>
+      <div class="lobe-tech">
+        <span class="tag tag-purple">ruby_llm</span>
+        <span class="tag tag-purple">llama3:70b</span>
+        <span class="tag">JSON mode</span>
+      </div>
+    </div>
+
+    <div class="lobe">
+      <div class="lobe-icon">😤</div>
+      <div class="lobe-label">Amygdala</div>
+      <div class="lobe-title">Chief Risk Officer</div>
+      <div class="lobe-role">SYSTEM 1 · VETO POWER</div>
+      <div class="lobe-desc">Hardcoded survival rules. Enforces Kelly Criterion sizing, ATR-based stop distance, VaR, daily drawdown kill-switch (3% of equity), and cross-asset correlation limits. Has absolute veto over the LLM.</div>
+      <div class="lobe-tech">
+        <span class="tag tag-red">kill switch</span>
+        <span class="tag tag-amber">kelly criterion</span>
+        <span class="tag">matrix</span>
+      </div>
+    </div>
+
+    <div class="lobe">
+      <div class="lobe-icon">⚡</div>
+      <div class="lobe-label">Motor Cortex</div>
+      <div class="lobe-title">Execution Trader</div>
+      <div class="lobe-role">TWAP / ICEBERG ALGOS</div>
+      <div class="lobe-desc">Never market-orders large size. Splits into 4 async tranches, places post-only limit orders at bid/ask to minimise slippage and avoid triggering HFT detection. Uses HMAC-signed Binance FAPI.</div>
+      <div class="lobe-tech">
+        <span class="tag">async</span>
+        <span class="tag">faraday-retry</span>
+        <span class="tag tag-amber">HMAC-SHA256</span>
+      </div>
+    </div>
+
+    <div class="lobe">
+      <div class="lobe-icon">🗃️</div>
+      <div class="lobe-label">Hippocampus</div>
+      <div class="lobe-title">Episodic Memory</div>
+      <div class="lobe-role">RAG · VECTOR STORE</div>
+      <div class="lobe-desc">Stores every closed trade as a vector embedding of market context + outcome. On each new signal the Cortex performs cosine similarity recall — enabling "déjà vu" about past liquidation cascades or winning setups.</div>
+      <div class="lobe-tech">
+        <span class="tag tag-green">qdrant-ruby</span>
+        <span class="tag tag-green">nomic-embed-text</span>
+        <span class="tag">pgvector</span>
+      </div>
+    </div>
+
+    <div class="lobe">
+      <div class="lobe-icon">📡</div>
+      <div class="lobe-label">NervousSystem</div>
+      <div class="lobe-title">Event Bus</div>
+      <div class="lobe-role">PUB/SUB DECOUPLING</div>
+      <div class="lobe-desc">Lobes never call each other directly. Everything flows through the NervousSystem pub/sub bus using wisper. This makes each lobe independently testable, replaceable, and failure-isolated.</div>
+      <div class="lobe-tech">
+        <span class="tag">wisper</span>
+        <span class="tag">concurrent-ruby</span>
+        <span class="tag tag-green">redis streams</span>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="callout callout-info">
+    <strong>Key Design Principle:</strong> The Amygdala (System 1, hardcoded rules) always has veto power over the Prefrontal Cortex (System 2, LLM reasoning). This prevents the LLM from hallucinating a "great trade" during a volatility spike or when daily drawdown limits are already breached.
+  </div>
+</div>
+</div>
+
+<!-- ════════════════════════════════════════ -->
+<!-- TAB: SETUP & CONFIG -->
+<!-- ════════════════════════════════════════ -->
+<div class="section" id="section-setup">
+<div class="container">
+  <div class="section-title">Setup & Configuration</div>
+  <p class="section-desc">Ollama Cloud API, gem installation, and environment wiring. Uses the OpenAI-compatible endpoint for maximum compatibility with ruby_llm.</p>
+
+  <div class="card">
+    <div class="card-title">🔑 Ollama Cloud API</div>
+    <div class="card-body">Ollama Cloud runs models on datacenter GPUs — no local GPU needed. The native endpoint is <code style="color:var(--accent)">https://ollama.com/api</code>. For tool-calling and JSON mode, use the OpenAI-compatible endpoint at <code style="color:var(--accent)">https://ollama.com/v1</code>. Authentication is via the <code style="color:var(--accent)">OLLAMA_API_KEY</code> environment variable.</div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-header"><span class="code-filename">Gemfile</span><span class="code-lang">ruby</span></div>
+    <div class="code-body"><pre><span class="kw">ruby</span> <span class="str">">= 3.3.0"</span>
+source <span class="str">"https://rubygems.org"</span>
+
+<span class="cmt"># ── LLM & Agent Layer ────────────────────────────────</span>
+<span class="mth">gem</span> <span class="str">"ruby_llm"</span>,              <span class="str">"~> 1.2"</span>   <span class="cmt"># Unified Ollama Cloud interface + tool calling</span>
+<span class="mth">gem</span> <span class="str">"langchainrb"</span>,           <span class="str">"~> 0.8"</span>   <span class="cmt"># ReAct agent, vectorstore integrations</span>
+<span class="mth">gem</span> <span class="str">"oj"</span>,                    <span class="str">"~> 3.16"</span>  <span class="cmt"># Fast JSON for LLM structured outputs</span>
+
+<span class="cmt"># ── Nervous System (Concurrency & Events) ────────────</span>
+<span class="mth">gem</span> <span class="str">"wisper"</span>,                <span class="str">"~> 2.0"</span>   <span class="cmt"># Pub/Sub between brain lobes</span>
+<span class="mth">gem</span> <span class="str">"concurrent-ruby"</span>,       <span class="str">"~> 1.2"</span>   <span class="cmt"># Thread-safe alpha-wave background loops</span>
+<span class="mth">gem</span> <span class="str">"async"</span>,                 <span class="str">"~> 2.8"</span>   <span class="cmt"># Non-blocking I/O for WebSockets + TWAP</span>
+<span class="mth">gem</span> <span class="str">"async-websocket"</span>,       <span class="str">"~> 0.25"</span>  <span class="cmt"># Binance FAPI streaming</span>
+
+<span class="cmt"># ── Market Data & Execution ───────────────────────────</span>
+<span class="mth">gem</span> <span class="str">"faraday"</span>,               <span class="str">"~> 2.9"</span>   <span class="cmt"># HTTP client for Binance REST</span>
+<span class="mth">gem</span> <span class="str">"faraday-retry"</span>,         <span class="str">"~> 2.2"</span>   <span class="cmt"># Auto-retry on 429 TooManyRequests</span>
+
+<span class="cmt"># ── Memory & State ────────────────────────────────────</span>
+<span class="mth">gem</span> <span class="str">"qdrant-ruby"</span>,           <span class="str">"~> 1.2"</span>   <span class="cmt"># Vector DB for episodic memory (RAG)</span>
+<span class="mth">gem</span> <span class="str">"redis"</span>,                 <span class="str">"~> 5.0"</span>   <span class="cmt"># Working memory & state sync</span>
+<span class="mth">gem</span> <span class="str">"pg"</span>,                    <span class="str">"~> 1.5"</span>   <span class="cmt"># Long-term trade logs + pgvector</span>
+
+<span class="cmt"># ── Quant Math ────────────────────────────────────────</span>
+<span class="mth">gem</span> <span class="str">"numo-narray"</span>,           <span class="str">"~> 0.9"</span>   <span class="cmt"># N-dimensional arrays (CVD, order book math)</span>
+<span class="mth">gem</span> <span class="str">"talib-ruby"</span>                         <span class="cmt"># ATR, RSI, MACD for signal generation</span>
+<span class="mth">gem</span> <span class="str">"descriptive_statistics"</span>             <span class="cmt"># VaR, std-dev, correlation</span>
+
+<span class="cmt"># ── Observability ─────────────────────────────────────</span>
+<span class="mth">gem</span> <span class="str">"prometheus-client"</span>                  <span class="cmt"># Metrics: intent accuracy, slippage, P&L</span>
+<span class="mth">gem</span> <span class="str">"sentry-ruby"</span>                        <span class="cmt"># Exception tracking</span></pre></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-header"><span class="code-filename">config/nemesis.rb</span><span class="code-lang">ruby</span></div>
+    <div class="code-body"><pre><span class="kw">require</span> <span class="str">"ruby_llm"</span>
+
+<span class="cls">RubyLLM</span>.configure <span class="kw">do</span> |c|
+  c.ollama_api_key = <span class="cls">ENV</span>[<span class="str">"OLLAMA_API_KEY"</span>]
+  c.ollama_url     = <span class="str">"https://ollama.com/v1"</span>  <span class="cmt"># OpenAI-compatible endpoint</span>
+<span class="kw">end</span>
+
+<span class="cmt"># Primary reasoning model (cloud GPU — no local GPU needed)</span>
+<span class="cls">REASONING_MODEL</span> = <span class="str">"llama3:70b"</span>
+
+<span class="cmt"># Embedding model for episodic memory vectors</span>
+<span class="cls">EMBED_MODEL</span>     = <span class="str">"nomic-embed-text"</span>
+
+<span class="cmt"># Binance Futures base URLs</span>
+<span class="cls">BINANCE_REST</span> = <span class="str">"https://fapi.binance.com"</span>
+<span class="cls">BINANCE_WS</span>   = <span class="str">"wss://fstream.binance.com"</span>
+
+<span class="cmt"># ⚠️  Always test on testnet first:</span>
+<span class="cmt"># BINANCE_REST = "https://testnet.binancefuture.com"</span></pre></div>
+  </div>
+
+  <div class="callout callout-warn">
+    <strong>Testnet first.</strong> Run exclusively on <code>testnet.binancefuture.com</code> for at least 2–4 weeks. Log every LLM decision, tool call, and API response before touching real capital.
+  </div>
+</div>
+</div>
+
+<!-- ════════════════════════════════════════ -->
+<!-- TAB: SENSORY CORTEX -->
+<!-- ════════════════════════════════════════ -->
+<div class="section" id="section-sensory">
+<div class="container">
+  <div class="section-title">Sensory Cortex — Tape Reader</div>
+  <p class="section-desc">Real-time Binance FAPI WebSocket ingestion. Professionals read CVD (Cumulative Volume Delta) and order book absorption — not lagging indicators.</p>
+
+  <div class="card">
+    <div class="card-title">📊 What CVD Tells You</div>
+    <div class="card-body">
+      <strong>Delta</strong> = market buys − market sells per interval. <strong>Absorption</strong> = high delta but price doesn't move → limit orders are eating aggression. This is a high-conviction signal that a large player is defending a level. <strong>Exhaustion</strong> = delta diverges from price direction → momentum is fading.
+    </div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-header"><span class="code-filename">app/lobes/sensory_cortex.rb</span><span class="code-lang">ruby</span></div>
+    <div class="code-body"><pre><span class="kw">require</span> <span class="str">"async"</span>
+<span class="kw">require</span> <span class="str">"async/websocket/client"</span>
+<span class="kw">require</span> <span class="str">"numo/narray"</span>
+
+<span class="kw">class</span> <span class="cls">SensoryCortex</span>
+  <span class="cls">CVD_WINDOW_SIZE</span> = <span class="num">200</span>
+  <span class="cls">ABSORPTION_DELTA_THRESHOLD</span> = <span class="num">1_000_000</span>  <span class="cmt"># USDT notional</span>
+  <span class="cls">ABSORPTION_PRICE_THRESHOLD</span> = <span class="num">0.05</span>        <span class="cmt"># % — price must NOT move</span>
+
+  <span class="kw">def</span> <span class="mth">initialize</span>(nervous_system)
+    @ns       = nervous_system
+    @cvd      = []
+    @prices   = []
+    @ob_bids  = <span class="cls">Numo</span>::<span class="cls">DFloat</span>.zeros(<span class="num">20</span>)
+    @ob_asks  = <span class="cls">Numo</span>::<span class="cls">DFloat</span>.zeros(<span class="num">20</span>)
+  <span class="kw">end</span>
+
+  <span class="kw">def</span> <span class="mth">start</span>(symbol: <span class="str">"btcusdt"</span>)
+    <span class="cls">Async</span> <span class="kw">do</span>
+      streams = [
+        <span class="str">"#{symbol}@aggTrade"</span>,   <span class="cmt"># Raw tape (aggressive orders)</span>
+        <span class="str">"#{symbol}@depth20"</span>,     <span class="cmt"># L2 order book (top 20 levels)</span>
+        <span class="str">"#{symbol}@forceOrder"</span>   <span class="cmt"># Liquidation events</span>
+      ]
+
+      url = <span class="str">"#{BINANCE_WS}/stream?streams=#{streams.join('/')}"</span>
+
+      <span class="cls">Async</span>::<span class="cls">WebSocket</span>::<span class="cls">Client</span>.connect(url) <span class="kw">do</span> |conn|
+        <span class="kw">while</span> (msg = conn.read)
+          payload = <span class="cls">Oj</span>.load(msg)
+          route_event(payload)
+        <span class="kw">end</span>
+      <span class="kw">end</span>
+    <span class="kw">end</span>
+  <span class="kw">end</span>
+
+  <span class="kw">private</span>
+
+  <span class="kw">def</span> <span class="mth">route_event</span>(payload)
+    stream = payload[<span class="str">"stream"</span>]
+    data   = payload[<span class="str">"data"</span>]
+
+    <span class="kw">case</span> stream
+    <span class="kw">when</span> /aggTrade/  <span class="kw">then</span> process_tape(data)
+    <span class="kw">when</span> /depth/     <span class="kw">then</span> update_orderbook(data)
+    <span class="kw">when</span> /forceOrder <span class="kw">then</span> process_liquidation(data)
+    <span class="kw">end</span>
+  <span class="kw">end</span>
+
+  <span class="kw">def</span> <span class="mth">process_tape</span>(trade)
+    qty   = trade[<span class="str">"q"</span>].to_f
+    price = trade[<span class="str">"p"</span>].to_f
+    side  = trade[<span class="str">"m"</span>] ? <span class="sym">:sell</span> : <span class="sym">:buy</span>  <span class="cmt"># m=true means maker=buyer → market sell</span>
+
+    delta = side == <span class="sym">:buy</span> ? qty : -qty
+    @cvd  << delta
+    @cvd.shift <span class="kw">if</span> @cvd.size > <span class="cls">CVD_WINDOW_SIZE</span>
+    @prices << price
+
+    detect_absorption(delta)
+  <span class="kw">end</span>
+
+  <span class="kw">def</span> <span class="mth">detect_absorption</span>(delta)
+    <span class="kw">return if</span> @prices.size < <span class="num">10</span>
+
+    cumulative_delta = @cvd.last(<span class="num">20</span>).sum
+    price_change_pct = ((@prices.last - @prices[-<span class="num">20</span>]) / @prices[-<span class="num">20</span>]).abs * <span class="num">100</span>
+
+    <span class="kw">if</span> cumulative_delta.abs > <span class="cls">ABSORPTION_DELTA_THRESHOLD</span> &&
+       price_change_pct < <span class="cls">ABSORPTION_PRICE_THRESHOLD</span>
+
+      direction = cumulative_delta > <span class="num">0</span> ? <span class="sym">:long</span> : <span class="sym">:short</span>
+      ob_imbalance = calculate_ob_imbalance
+
+      @ns.broadcast(:tape_signal_detected,
+        type:         <span class="sym">:absorption</span>,
+        direction:    direction,
+        delta:        cumulative_delta,
+        price:        @prices.last,
+        ob_imbalance: ob_imbalance,
+        context:      <span class="str">"Delta=#{cumulative_delta.round(0)} absorbed at #{@prices.last}. Price unmoved."</span>
+      )
+    <span class="kw">end</span>
+  <span class="kw">end</span>
+
+  <span class="kw">def</span> <span class="mth">calculate_ob_imbalance</span>
+    bid_volume = @ob_bids.sum
+    ask_volume = @ob_asks.sum
+    <span class="kw">return</span> <span class="num">0.0</span> <span class="kw">if</span> bid_volume + ask_volume == <span class="num">0</span>
+    (bid_volume - ask_volume) / (bid_volume + ask_volume)  <span class="cmt"># -1.0 to +1.0</span>
+  <span class="kw">end</span>
+
+  <span class="kw">def</span> <span class="mth">process_liquidation</span>(data)
+    order = data[<span class="str">"o"</span>]
+    side  = order[<span class="str">"S"</span>]   <span class="cmt"># SELL = long liquidation, BUY = short liquidation</span>
+    usd   = order[<span class="str">"q"</span>].to_f * order[<span class="str">"ap"</span>].to_f
+
+    @ns.broadcast(:liquidation_detected, side: side, usd_value: usd)
+  <span class="kw">end</span>
+
+  <span class="kw">def</span> <span class="mth">update_orderbook</span>(data)
+    bids = data[<span class="str">"b"</span>].first(<span class="num">20</span>).map { |b| b[<span class="num">1</span>].to_f }
+    asks = data[<span class="str">"a"</span>].first(<span class="num">20</span>).map { |a| a[<span class="num">1</span>].to_f }
+    @ob_bids = <span class="cls">Numo</span>::<span class="cls">DFloat</span>.cast(bids)
+    @ob_asks = <span class="cls">Numo</span>::<span class="cls">DFloat</span>.cast(asks)
+  <span class="kw">end</span>
+<span class="kw">end</span></pre></div>
+  </div>
+</div>
+</div>
+
+<!-- ════════════════════════════════════════ -->
+<!-- TAB: REASONING & INTENT -->
+<!-- ════════════════════════════════════════ -->
+<div class="section" id="section-reasoning">
+<div class="container">
+  <div class="section-title">Prefrontal Cortex — Reasoning & Intent</div>
+  <p class="section-desc">The LLM reasoning layer. Classifies intent into structured JSON, retrieves episodic memories, and generates a formal Trade Plan with defined R:R before anything else happens.</p>
+
+  <div class="card">
+    <div class="card-title">🎯 Two-Stage Reasoning</div>
+    <div class="card-body"><strong>Stage 1 — Intent Classification:</strong> Convert any input (tape signal, manual prompt, macro alert) into a structured JSON intent object using Ollama's JSON mode. <strong>Stage 2 — Trade Plan Generation:</strong> The Portfolio Manager uses that intent + episodic memories to formulate entry zone, invalidation, targets, and a setup grade. Only "A" grade plans advance.</div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-header"><span class="code-filename">app/lobes/prefrontal_cortex.rb</span><span class="code-lang">ruby</span></div>
+    <div class="code-body"><pre><span class="kw">class</span> <span class="cls">PrefrontalCortex</span>
+  <span class="kw">include</span> <span class="cls">Wisper</span>::<span class="cls">Publisher</span>
+
+  <span class="cls">INTENT_SCHEMA</span> = {
+    type: <span class="str">"object"</span>,
+    properties: {
+      intent:   { type: <span class="str">"string"</span>, <span class="kw">enum</span>: [<span class="str">"open_position"</span>, <span class="str">"close_position"</span>, <span class="str">"analyze_market"</span>, <span class="str">"unknown"</span>] },
+      symbol:   { type: <span class="str">"string"</span> },
+      side:     { type: <span class="str">"string"</span>, <span class="kw">enum</span>: [<span class="str">"long"</span>, <span class="str">"short"</span>] },
+      leverage: { type: <span class="str">"integer"</span> },
+      reason:   { type: <span class="str">"string"</span> }
+    },
+    required: [<span class="str">"intent"</span>]
+  }
+
+  <span class="kw">def</span> <span class="mth">initialize</span>(nervous_system:, hippocampus:)
+    @ns     = nervous_system
+    @memory = hippocampus
+    @llm    = <span class="cls">RubyLLM</span>.chat(model: <span class="cls">REASONING_MODEL</span>, provider: <span class="sym">:ollama</span>)
+
+    @ns.subscribe(self, on: <span class="sym">:tape_signal_detected</span>)
+    @ns.subscribe(self, on: <span class="sym">:alpha_wave_pulse</span>)    <span class="cmt"># 60s background heartbeat</span>
+  <span class="kw">end</span>
+
+  <span class="cmt"># ── Triggered by SensoryCortex ──────────────────────────────</span>
+  <span class="kw">def</span> <span class="mth">tape_signal_detected</span>(type:, direction:, delta:, price:, context:, **rest)
+    memories   = @memory.recall(<span class="str">"#{direction} absorption #{context}"</span>)
+    atr        = fetch_atr_pct(rest[:symbol] || <span class="str">"BTCUSDT"</span>)
+    trade_plan = generate_trade_plan(direction, price, atr, context, memories)
+
+    <span class="kw">if</span> trade_plan[<span class="str">"setup_grade"</span>] == <span class="str">"A"</span>
+      @ns.broadcast(<span class="sym">:trade_plan_generated</span>, trade_plan)
+    <span class="kw">else</span>
+      log(<span class="str">"PM: Grade #{trade_plan['setup_grade']} — skipped. Waiting for better setup."</span>)
+    <span class="kw">end</span>
+  <span class="kw">end</span>
+
+  <span class="kw">def</span> <span class="mth">alpha_wave_pulse</span>(funding_rates:, open_interest:)
+    prompt = <span class="str"><<~P
+      Macro environment review.
+      Funding rates: #{funding_rates.to_json}
+      Open interest trend: #{open_interest.to_json}
+      What is the dominant market bias right now? Any concerning signals?
+      JSON: { "bias": "LONG|SHORT|NEUTRAL", "confidence": float, "notes": "string" }
+    P</span>
+    bias = <span class="cls">Oj</span>.load(ask_llm(prompt))
+    @ns.broadcast(<span class="sym">:macro_bias_updated</span>, bias)
+  <span class="kw">end</span>
+
+  <span class="kw">private</span>
+
+  <span class="kw">def</span> <span class="mth">generate_trade_plan</span>(direction, price, atr_pct, context, memories)
+    memory_text = memories.any? ?
+      <span class="str">"Past similar episodes:\n#{memories.join("\n")}"</span> :
+      <span class="str">"No relevant past episodes found."</span>
+
+    prompt = <span class="str"><<~PROMPT
+      You are the Portfolio Manager of a crypto prop desk.
+      Signal: #{direction.upcase} absorption at #{price}.
+      Context: #{context}
+      Current ATR: #{(atr_pct * 100).round(2)}%
+      #{memory_text}
+
+      Rules:
+      - Entry must be near the absorption zone (within 0.1%)
+      - Invalidation goes WHERE THE THESIS IS WRONG (below absorption node for LONG)
+      - Target 1 at 1R, Target 2 at 3R minimum
+      - Grade A = clear absorption + OB confluence + macro aligned
+        Grade B = absorption only, no confluence
+        Grade C = ambiguous / avoid
+
+      Respond ONLY as JSON:
+      {
+        "thesis": "string",
+        "side": "LONG|SHORT",
+        "entry_zone": {"low": float, "high": float},
+        "invalidation_price": float,
+        "targets": [float, float],
+        "setup_grade": "A|B|C",
+        "confidence": float
+      }
+    PROMPT</span>
+
+    <span class="cls">Oj</span>.load(ask_llm(prompt))
+  <span class="kw">end</span>
+
+  <span class="kw">def</span> <span class="mth">ask_llm</span>(prompt)
+    <span class="cmt"># Fresh chat each call — stateless for determinism</span>
+    chat = <span class="cls">RubyLLM</span>.chat(model: <span class="cls">REASONING_MODEL</span>, provider: <span class="sym">:ollama</span>)
+    chat.ask(prompt, response_format: { type: <span class="str">"json_object"</span> }).content
+  <span class="kw">end</span>
+
+  <span class="kw">def</span> <span class="mth">fetch_atr_pct</span>(symbol)
+    <span class="num">0.012</span>  <span class="cmt"># Placeholder — in prod: calculate from last 14 candles via talib-ruby</span>
+  <span class="kw">end</span>
+<span class="kw">end</span></pre></div>
+  </div>
+</div>
+</div>
+
+<!-- ════════════════════════════════════════ -->
+<!-- TAB: HIPPOCAMPUS -->
+<!-- ════════════════════════════════════════ -->
+<div class="section" id="section-memory">
+<div class="container">
+  <div class="section-title">Hippocampus — Episodic Memory & RAG</div>
+  <p class="section-desc">Unlike standard agents that forget everything on restart, Nemesis embeds every trade's full market context as a vector and performs cosine recall — enabling genuine learning from past mistakes.</p>
+
+  <div class="code-block">
+    <div class="code-header"><span class="code-filename">app/lobes/hippocampus.rb</span><span class="code-lang">ruby</span></div>
+    <div class="code-body"><pre><span class="kw">class</span> <span class="cls">Hippocampus</span>
+  <span class="cls">COLLECTION</span> = <span class="str">"nemesis_episodes"</span>
+  <span class="cls">VECTOR_DIM</span>  = <span class="num">768</span>  <span class="cmt"># nomic-embed-text output dimension</span>
+
+  <span class="kw">def</span> <span class="mth">initialize</span>
+    @qdrant   = <span class="cls">Qdrant</span>::<span class="cls">Client</span>.new(
+      url:     <span class="cls">ENV</span>[<span class="str">"QDRANT_URL"</span>],
+      api_key: <span class="cls">ENV</span>[<span class="str">"QDRANT_API_KEY"</span>]
+    )
+    @embedder = <span class="cls">RubyLLM</span>.embed(model: <span class="cls">EMBED_MODEL</span>, provider: <span class="sym">:ollama</span>)
+    ensure_collection_exists
+  <span class="kw">end</span>
+
+  <span class="cmt"># Called after every closed trade</span>
+  <span class="kw">def</span> <span class="mth">store_episode</span>(symbol:, side:, entry_price:, exit_price:, pnl_r:, thesis:, context:)
+    outcome  = pnl_r >= <span class="num">0</span> ? <span class="str">"WIN (#{pnl_r.round(2)}R)"</span> : <span class="str">"LOSS (#{pnl_r.round(2)}R)"</span>
+    text = <span class="str"><<~T
+      Trade: #{symbol} #{side.upcase} at #{entry_price} → #{exit_price}
+      Thesis: #{thesis}
+      Market context: #{context}
+      Outcome: #{outcome}
+    T</span>
+
+    vector = embed(text)
+
+    @qdrant.points.upsert(
+      collection_name: <span class="cls">COLLECTION</span>,
+      points: [{
+        id:      <span class="cls">SecureRandom</span>.uuid,
+        vector:  vector,
+        payload: {
+          text:       text,
+          pnl_r:      pnl_r,
+          symbol:     symbol,
+          timestamp:  <span class="cls">Time</span>.now.to_i,
+          win:        pnl_r >= <span class="num">0</span>
+        }
+      }]
+    )
+  <span class="kw">end</span>
+
+  <span class="cmt"># Called by PrefrontalCortex before generating a trade plan</span>
+  <span class="kw">def</span> <span class="mth">recall</span>(market_context, limit: <span class="num">4</span>, min_score: <span class="num">0.72</span>)
+    vector  = embed(market_context)
+    results = @qdrant.points.search(
+      collection_name: <span class="cls">COLLECTION</span>,
+      vector:          vector,
+      limit:           limit,
+      score_threshold: min_score
+    )
+
+    (results.dig(<span class="str">"result"</span>) || []).map do |hit|
+      payload = hit[<span class="str">"payload"</span>]
+      <span class="str">"[Score:#{hit['score'].round(2)}] #{payload['text'].strip}"</span>
+    <span class="kw">end</span>
+  <span class="kw">end</span>
+
+  <span class="cmt"># Nightly post-mortem: fetch recent losing trades for LLM review</span>
+  <span class="kw">def</span> <span class="mth">recent_losses</span>(days: <span class="num">1</span>, limit: <span class="num">10</span>)
+    cutoff = (<span class="cls">Time</span>.now - days * <span class="num">86400</span>).to_i
+    <span class="cmt"># Scroll with filter — Qdrant supports payload filtering</span>
+    @qdrant.points.scroll(
+      collection_name: <span class="cls">COLLECTION</span>,
+      filter: {
+        must: [
+          { key: <span class="str">"win"</span>,       match: { value: <span class="kw">false</span> } },
+          { key: <span class="str">"timestamp"</span>, range: { gte: cutoff } }
+        ]
+      },
+      limit: limit,
+      with_payload: <span class="kw">true</span>
+    ).dig(<span class="str">"result"</span>, <span class="str">"points"</span>) || []
+  <span class="kw">end</span>
+
+  <span class="kw">private</span>
+
+  <span class="kw">def</span> <span class="mth">embed</span>(text)
+    @embedder.embed(text).embedding
+  <span class="kw">end</span>
+
+  <span class="kw">def</span> <span class="mth">ensure_collection_exists</span>
+    existing = @qdrant.collections.list[<span class="str">"result"</span>][<span class="str">"collections"</span>].map { |c| c[<span class="str">"name"</span>] }
+    <span class="kw">return if</span> existing.include?(<span class="cls">COLLECTION</span>)
+
+    @qdrant.collections.create(
+      collection_name: <span class="cls">COLLECTION</span>,
+      vectors: { size: <span class="cls">VECTOR_DIM</span>, distance: <span class="str">"Cosine"</span> }
+    )
+  <span class="kw">end</span>
+<span class="kw">end</span></pre></div>
+  </div>
+
+  <div class="callout callout-success">
+    <span class="pulse"></span><strong>Why this works:</strong> Standard agents have no memory between restarts. Nemesis recalls semantically similar past trades — e.g., a long absorption signal that led to a stop-hunt 3 weeks ago — and injects that context into the LLM's reasoning before the trade plan is generated.
+  </div>
+</div>
+</div>
+
+<!-- ════════════════════════════════════════ -->
+<!-- TAB: RISK CRO -->
+<!-- ════════════════════════════════════════ -->
+<div class="section" id="section-risk">
+<div class="container">
+  <div class="section-title">Amygdala — Chief Risk Officer</div>
+  <p class="section-desc">The veto layer. Hardcoded survival rules that the LLM cannot override. Uses Kelly Criterion, ATR-based stop sizing, and correlation-adjusted position limits.</p>
+
+  <div class="risk-grid">
+    <div class="risk-item">
+      <div class="risk-item-label">❌ What Retail Does</div>
+      <div class="risk-item-text">"Let's use 10x leverage on this trade." Arbitrary leverage with no connection to stop distance or account risk.</div>
+    </div>
+    <div class="risk-item safe">
+      <div class="risk-item-label">✅ What Nemesis Does</div>
+      <div class="risk-item-text">Risk $100 (1% of $10k equity). Stop distance = 0.8% from entry. Position size = $100 / 0.008 = $12,500 notional. Leverage is derived, not chosen.</div>
+    </div>
+    <div class="risk-item">
+      <div class="risk-item-label">❌ Danger Signal</div>
+      <div class="risk-item-text">Already down 3% today? Keep trading "to make it back." This is revenge trading — the most common account blowup pattern.</div>
+    </div>
+    <div class="risk-item safe">
+      <div class="risk-item-label">✅ Kill Switch</div>
+      <div class="risk-item-text">Daily drawdown ≥ 3% of equity triggers a hard desk close. No more trades until next session. Non-negotiable, LLM cannot override.</div>
+    </div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-header"><span class="code-filename">app/lobes/amygdala.rb</span><span class="code-lang">ruby</span></div>
+    <div class="code-body"><pre><span class="kw">require</span> <span class="str">"matrix"</span>
+<span class="kw">require</span> <span class="str">"descriptive_statistics"</span>
+
+<span class="kw">class</span> <span class="cls">Amygdala</span>
+  <span class="cls">MAX_RISK_PER_TRADE</span> = <span class="num">0.01</span>  <span class="cmt"># 1% of equity per trade</span>
+  <span class="cls">MAX_DAILY_DRAWDOWN</span> = <span class="num">0.03</span>  <span class="cmt"># 3% daily loss = desk closed</span>
+  <span class="cls">MAX_LEVERAGE</span>       = <span class="num">20</span>    <span class="cmt"># Hard cap regardless of sizing math</span>
+  <span class="cls">MIN_RR_RATIO</span>       = <span class="num">2.0</span>  <span class="cmt"># Must have 2:1 minimum R:R to proceed</span>
+
+  <span class="kw">def</span> <span class="mth">initialize</span>(nervous_system:, equity:)
+    @ns        = nervous_system
+    @equity    = equity
+    @session_pnl = <span class="num">0.0</span>
+    @desk_open = <span class="kw">true</span>
+
+    @ns.subscribe(self, on: <span class="sym">:trade_plan_generated</span>)
+    @ns.subscribe(self, on: <span class="sym">:trade_closed</span>)
+  <span class="kw">end</span>
+
+  <span class="kw">def</span> <span class="mth">trade_plan_generated</span>(plan)
+    <span class="kw">unless</span> @desk_open
+      log(<span class="str">"🛑 AMYGDALA: Desk closed (daily drawdown limit hit). Rejecting."</span>)
+      <span class="kw">return</span>
+    <span class="kw">end</span>
+
+    entry   = plan[<span class="str">"entry_zone"</span>][<span class="str">"high"</span>].to_f
+    stop    = plan[<span class="str">"invalidation_price"</span>].to_f
+    target1 = plan[<span class="str">"targets"</span>][<span class="num">0</span>].to_f
+    target2 = plan[<span class="str">"targets"</span>][<span class="num">1</span>].to_f
+
+    stop_distance    = (entry - stop).abs / entry
+    reward_distance  = (target1 - entry).abs / entry
+    rr_ratio         = reward_distance / stop_distance
+
+    <span class="kw">if</span> rr_ratio < <span class="cls">MIN_RR_RATIO</span>
+      log(<span class="str">"🛑 AMYGDALA: R:R #{rr_ratio.round(2)} < #{MIN_RR_RATIO} minimum. Rejected."</span>)
+      <span class="kw">return</span>
+    <span class="kw">end</span>
+
+    <span class="cmt"># Kelly Criterion sizing (fractional Kelly = 0.25 for safety)</span>
+    win_rate       = <span class="num">0.45</span>  <span class="cmt"># Conservative prior — update from trade history</span>
+    kelly_fraction = (win_rate - ((1 - win_rate) / rr_ratio)) * <span class="num">0.25</span>
+    kelly_fraction = kelly_fraction.clamp(<span class="num">0.0</span>, <span class="cls">MAX_RISK_PER_TRADE</span>)
+
+    risk_amount     = @equity * kelly_fraction
+    position_size   = risk_amount / stop_distance
+    leverage        = (position_size / @equity).ceil.clamp(<span class="num">1</span>, <span class="cls">MAX_LEVERAGE</span>)
+
+    <span class="cmt"># Cross-asset correlation penalty</span>
+    correlation_factor = correlation_penalty(plan[<span class="str">"side"</span>])
+    adjusted_size      = position_size * (1.0 - correlation_factor)
+
+    log(<span class="str">"🛡️  AMYGDALA: APPROVED. Size=$#{adjusted_size.round(2)} Leverage=#{leverage}x R:R=#{rr_ratio.round(2)}"</span>)
+
+    @ns.broadcast(<span class="sym">:approved_order</span>, {
+      plan:         plan,
+      size_usd:     adjusted_size,
+      leverage:     leverage,
+      risk_pct:     kelly_fraction * <span class="num">100</span>,
+      rr_ratio:     rr_ratio
+    })
+  <span class="kw">end</span>
+
+  <span class="kw">def</span> <span class="mth">trade_closed</span>(pnl_usd:)
+    @session_pnl += pnl_usd
+    drawdown_pct   = -@session_pnl / @equity
+
+    <span class="kw">if</span> drawdown_pct >= <span class="cls">MAX_DAILY_DRAWDOWN</span>
+      @desk_open = <span class="kw">false</span>
+      log(<span class="str">"🔴 AMYGDALA: Daily drawdown #{(drawdown_pct * 100).round(2)}% breached. DESK CLOSED for session."</span>)
+      @ns.broadcast(<span class="sym">:desk_closed</span>, reason: <span class="str">"daily_drawdown_limit"</span>)
+    <span class="kw">end</span>
+  <span class="kw">end</span>
+
+  <span class="kw">private</span>
+
+  <span class="kw">def</span> <span class="mth">correlation_penalty</span>(side)
+    <span class="cmt"># Stub: returns 0.0–0.5 based on open position correlation</span>
+    <span class="cmt"># In prod: fetch open positions, compute 30-day rolling correlation</span>
+    <span class="cmt"># matrix between BTC/ETH/SOL. If net delta exposure is already high,</span>
+    <span class="cmt"># reduce new position size accordingly.</span>
+    <span class="num">0.0</span>
+  <span class="kw">end</span>
+
+  <span class="kw">def</span> <span class="mth">log</span>(msg) = <span class="kw">puts</span>(<span class="str">"[#{Time.now.strftime('%H:%M:%S')}] #{msg}"</span>)
+<span class="kw">end</span></pre></div>
+  </div>
+</div>
+</div>
+
+<!-- ════════════════════════════════════════ -->
+<!-- TAB: EXECUTION -->
+<!-- ════════════════════════════════════════ -->
+<div class="section" id="section-execution">
+<div class="container">
+  <div class="section-title">Motor Cortex — Execution & Binance Client</div>
+  <p class="section-desc">HMAC-signed Binance FAPI REST client + async iceberg execution. Splits large orders into tranches to avoid book impact and HFT detection.</p>
+
+  <div class="code-block">
+    <div class="code-header"><span class="code-filename">app/clients/binance_futures_client.rb</span><span class="code-lang">ruby</span></div>
+    <div class="code-body"><pre><span class="kw">require</span> <span class="str">"faraday"</span>
+<span class="kw">require</span> <span class="str">"faraday/retry"</span>
+<span class="kw">require</span> <span class="str">"openssl"</span>
+
+<span class="kw">class</span> <span class="cls">BinanceFuturesClient</span>
+  <span class="kw">def</span> <span class="mth">initialize</span>(api_key:, secret_key:, recv_window: <span class="num">5000</span>)
+    @api_key = api_key
+    @secret  = secret_key
+    @recv    = recv_window
+    @conn    = <span class="cls">Faraday</span>.new(<span class="cls">BINANCE_REST</span>) <span class="kw">do</span> |f|
+      f.request <span class="sym">:retry</span>, max: <span class="num">3</span>, interval: <span class="num">0.5</span>, retry_statuses: [<span class="num">429</span>]
+      f.adapter <span class="cls">Faraday</span>.default_adapter
+    <span class="kw">end</span>
+  <span class="kw">end</span>
+
+  <span class="kw">def</span> <span class="mth">get_price</span>(symbol)   = signed_get(<span class="str">"/fapi/v1/ticker/price"</span>, symbol:)[<span class="str">"price"</span>].to_f
+  <span class="kw">def</span> <span class="mth">get_funding_rate</span>(s) = signed_get(<span class="str">"/fapi/v1/fundingRate"</span>, symbol: s, limit: <span class="num">1</span>).first
+  <span class="kw">def</span> <span class="mth">get_open_interest</span>(s)= signed_get(<span class="str">"/fapi/v1/openInterest"</span>, symbol: s)
+
+  <span class="kw">def</span> <span class="mth">set_leverage</span>(symbol:, leverage:)
+    signed_post(<span class="str">"/fapi/v1/leverage"</span>, symbol:, leverage:)
+  <span class="kw">end</span>
+
+  <span class="kw">def</span> <span class="mth">place_limit_order</span>(symbol:, side:, size_usd:, price:)
+    quantity = (size_usd / price).round(<span class="num">3</span>)
+    signed_post(<span class="str">"/fapi/v1/order"</span>,
+      symbol:           symbol,
+      side:             side.upcase,
+      type:             <span class="str">"LIMIT"</span>,
+      price:            price.round(<span class="num">2</span>),
+      quantity:         quantity,
+      timeInForce:      <span class="str">"GTC"</span>,
+      reduceOnly:       <span class="kw">false</span>
+    )
+  <span class="kw">end</span>
+
+  <span class="kw">def</span> <span class="mth">place_stop_order</span>(symbol:, side:, quantity:, stop_price:)
+    signed_post(<span class="str">"/fapi/v1/order"</span>,
+      symbol:           symbol,
+      side:             side.upcase,
+      type:             <span class="str">"STOP_MARKET"</span>,
+      stopPrice:        stop_price.round(<span class="num">2</span>),
+      quantity:         quantity,
+      closePosition:    <span class="kw">false</span>
+    )
+  <span class="kw">end</span>
+
+  <span class="kw">private</span>
+
+  <span class="kw">def</span> <span class="mth">signed_get</span>(path, params = {})
+    p = timestamped(params)
+    p[:signature] = sign(p)
+    resp = @conn.get(path, p, auth_header)
+    <span class="cls">Oj</span>.load(resp.body)
+  <span class="kw">end</span>
+
+  <span class="kw">def</span> <span class="mth">signed_post</span>(path, params = {})
+    p = timestamped(params)
+    p[:signature] = sign(p)
+    resp = @conn.post(path, <span class="cls">URI</span>.encode_www_form(p), auth_header)
+    <span class="cls">Oj</span>.load(resp.body)
+  <span class="kw">end</span>
+
+  <span class="kw">def</span> <span class="mth">timestamped</span>(p) = p.merge(recvWindow: @recv, timestamp: (<span class="cls">Time</span>.now.to_f * <span class="num">1000</span>).to_i)
+  <span class="kw">def</span> <span class="mth">auth_header</span>    = { <span class="str">"X-MBX-APIKEY"</span> => @api_key }
+  <span class="kw">def</span> <span class="mth">sign</span>(params)
+    query = <span class="cls">URI</span>.encode_www_form(params.sort.to_h)
+    <span class="cls">OpenSSL</span>::<span class="cls">HMAC</span>.hexdigest(<span class="str">"SHA256"</span>, @secret, query)
+  <span class="kw">end</span>
+<span class="kw">end</span></pre></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-header"><span class="code-filename">app/lobes/motor_cortex.rb</span><span class="code-lang">ruby</span></div>
+    <div class="code-body"><pre><span class="kw">class</span> <span class="cls">MotorCortex</span>
+  <span class="cls">TRANCHE_COUNT</span> = <span class="num">4</span>
+  <span class="cls">TRANCHE_DELAY</span> = <span class="num">15</span>  <span class="cmt"># seconds between tranches</span>
+
+  <span class="kw">def</span> <span class="mth">initialize</span>(nervous_system:, binance:)
+    @ns      = nervous_system
+    @binance = binance
+    @ns.subscribe(self, on: <span class="sym">:approved_order</span>)
+  <span class="kw">end</span>
+
+  <span class="kw">def</span> <span class="mth">approved_order</span>(order_data)
+    plan     = order_data[:plan]
+    symbol   = plan[<span class="str">"symbol"</span>] || <span class="str">"BTCUSDT"</span>
+    side     = plan[<span class="str">"side"</span>]        <span class="cmt"># "LONG" or "SHORT"</span>
+    total    = order_data[:size_usd]
+    leverage = order_data[:leverage]
+    stop_px  = plan[<span class="str">"invalidation_price"</span>]
+    entry_lo = plan[<span class="str">"entry_zone"</span>][<span class="str">"low"</span>]
+    target1  = plan[<span class="str">"targets"</span>][<span class="num">0</span>]
+
+    <span class="cmt"># Set leverage first</span>
+    @binance.set_leverage(symbol:, leverage:)
+
+    <span class="cls">Async</span> <span class="kw">do</span> |task|
+      tranche_size = total / <span class="cls">TRANCHE_COUNT</span>
+      total_qty    = <span class="num">0.0</span>
+
+      <span class="cls">TRANCHE_COUNT</span>.times <span class="kw">do</span> |i|
+        task.async <span class="kw">do</span>
+          <span class="cmt"># Wait for price to enter entry zone</span>
+          wait_for_entry_zone(symbol, entry_lo, plan[<span class="str">"entry_zone"</span>][<span class="str">"high"</span>])
+
+          current_price = @binance.get_price(symbol)
+          result = @binance.place_limit_order(
+            symbol:   symbol,
+            side:     side == <span class="str">"LONG"</span> ? <span class="str">"BUY"</span> : <span class="str">"SELL"</span>,
+            size_usd: tranche_size,
+            price:    current_price
+          )
+
+          qty = result[<span class="str">"executedQty"</span>].to_f
+          total_qty += qty
+          puts <span class="str">"⚡ Tranche #{i+1}/#{TRANCHE_COUNT} filled: #{qty} @ #{current_price}"</span>
+
+          sleep <span class="cls">TRANCHE_DELAY</span>
+        <span class="kw">end</span>
+      <span class="kw">end</span>
+
+      <span class="cmt"># Place stop-loss once all tranches are done</span>
+      task.async <span class="kw">do</span>
+        sleep <span class="cls">TRANCHE_COUNT</span> * <span class="cls">TRANCHE_DELAY</span> + <span class="num">5</span>
+        stop_side = side == <span class="str">"LONG"</span> ? <span class="str">"SELL"</span> : <span class="str">"BUY"</span>
+        @binance.place_stop_order(
+          symbol:     symbol,
+          side:       stop_side,
+          quantity:   total_qty.round(<span class="num">3</span>),
+          stop_price: stop_px
+        )
+        puts <span class="str">"🛑 Stop-loss placed at #{stop_px}"</span>
+        @ns.broadcast(<span class="sym">:execution_complete</span>, symbol:, qty: total_qty, stop: stop_px)
+      <span class="kw">end</span>
+    <span class="kw">end</span>
+  <span class="kw">end</span>
+
+  <span class="kw">private</span>
+
+  <span class="kw">def</span> <span class="mth">wait_for_entry_zone</span>(symbol, lo, hi)
+    loop <span class="kw">do</span>
+      price = @binance.get_price(symbol)
+      <span class="kw">break if</span> price.between?(lo, hi)
+      sleep <span class="num">0.5</span>
+    <span class="kw">end</span>
+  <span class="kw">end</span>
+<span class="kw">end</span></pre></div>
+  </div>
+</div>
+</div>
+
+<!-- ════════════════════════════════════════ -->
+<!-- TAB: DAILY LIFECYCLE -->
+<!-- ════════════════════════════════════════ -->
+<div class="section" id="section-lifecycle">
+<div class="container">
+  <div class="section-title">Daily Lifecycle & Boot Sequence</div>
+  <p class="section-desc">Nemesis runs a structured daily routine: pre-market macro analysis, intraday execution, post-market post-mortem, and a weekend "dream state" for self-improvement.</p>
+
+  <div class="flow">
+    <div class="flow-step" data-n="1">
+      <div>
+        <div class="flow-step-title">08:00 UTC — Pre-Market Macro Scan</div>
+        <div class="flow-step-desc">Scrape economic calendar (CPI, FOMC, Powell). If high-impact event within 30 mins, CRO halves all position sizes or halts trading entirely. Feed overnight news into Hippocampus as background context.</div>
+      </div>
+    </div>
+    <div class="flow-step" data-n="2">
+      <div>
+        <div class="flow-step-title">09:00–20:00 UTC — Intraday Execution</div>
+        <div class="flow-step-desc">SensoryCortex streams Binance WS. Alpha Wave Loop pulses every 60s. PrefrontalCortex evaluates tape signals, recalls episodic memories, generates Trade Plans. CRO gates all plans before MotorCortex executes.</div>
+      </div>
+    </div>
+    <div class="flow-step" data-n="3">
+      <div>
+        <div class="flow-step-title">21:00 UTC — Nightly Post-Mortem</div>
+        <div class="flow-step-desc">TradeJournalist fetches today's closed trades. LLM reviews PM's original thesis vs actual outcome, identifies cognitive biases (FOMO, revenge trading, moving stops). Generates 2 new "Core Rules" appended to PM's system prompt for tomorrow.</div>
+      </div>
+    </div>
+    <div class="flow-step" data-n="4">
+      <div>
+        <div class="flow-step-title">Weekend — Dream State</div>
+        <div class="flow-step-desc">Monte Carlo simulation on week's trades to recalculate Kelly fraction. LLM reviews all losing trades, outputs new risk rules or prompt constraints. "Lessons learned" stored as new Qdrant embeddings tagged as "Core Beliefs".</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-header"><span class="code-filename">boot_nemesis.rb</span><span class="code-lang">ruby</span></div>
+    <div class="code-body"><pre><span class="kw">require_relative</span> <span class="str">"config/nemesis"</span>
+<span class="kw">require_relative</span> <span class="str">"app/lobes/hippocampus"</span>
+<span class="kw">require_relative</span> <span class="str">"app/lobes/sensory_cortex"</span>
+<span class="kw">require_relative</span> <span class="str">"app/lobes/prefrontal_cortex"</span>
+<span class="kw">require_relative</span> <span class="str">"app/lobes/amygdala"</span>
+<span class="kw">require_relative</span> <span class="str">"app/lobes/motor_cortex"</span>
+<span class="kw">require_relative</span> <span class="str">"app/clients/binance_futures_client"</span>
+<span class="kw">require</span> <span class="str">"wisper"</span>
+<span class="kw">require</span> <span class="str">"concurrent"</span>
+
+puts <span class="str">"🧠 Booting Nemesis Cognitive Architecture v1.0..."</span>
+puts <span class="str">"   Model  : #{REASONING_MODEL} via Ollama Cloud"</span>
+puts <span class="str">"   Target : #{BINANCE_REST}"</span>
+
+<span class="cmt"># ── Wiring ────────────────────────────────────────────────────</span>
+<span class="kw">class</span> <span class="cls">NervousSystem</span>
+  <span class="kw">include</span> <span class="cls">Wisper</span>::<span class="cls">Publisher</span>
+<span class="kw">end</span>
+
+nervous_system = <span class="cls">NervousSystem</span>.new
+binance        = <span class="cls">BinanceFuturesClient</span>.new(
+  api_key:    <span class="cls">ENV</span>[<span class="str">"BINANCE_KEY"</span>],
+  secret_key: <span class="cls">ENV</span>[<span class="str">"BINANCE_SECRET"</span>]
+)
+
+hippocampus = <span class="cls">Hippocampus</span>.new
+sensory     = <span class="cls">SensoryCortex</span>.new(nervous_system)
+cortex      = <span class="cls">PrefrontalCortex</span>.new(nervous_system:, hippocampus:)
+amygdala    = <span class="cls">Amygdala</span>.new(nervous_system:, equity: <span class="num">10_000</span>)
+motor       = <span class="cls">MotorCortex</span>.new(nervous_system:, binance:)
+
+<span class="cmt"># ── Alpha Wave Loop (background introspection) ─────────────────</span>
+alpha_wave = <span class="cls">Concurrent</span>::<span class="cls">TimerTask</span>.new(execution_interval: <span class="num">60</span>) <span class="kw">do</span>
+  funding     = binance.get_funding_rate(<span class="str">"BTCUSDT"</span>)
+  oi          = binance.get_open_interest(<span class="str">"BTCUSDT"</span>)
+  nervous_system.broadcast(<span class="sym">:alpha_wave_pulse</span>, funding_rates: funding, open_interest: oi)
+<span class="kw">end</span>
+
+<span class="cmt"># ── Launch ─────────────────────────────────────────────────────</span>
+alpha_wave.execute
+puts <span class="str">"🌊 Alpha Wave Loop started (60s interval)"</span>
+
+sensory.start(symbol: <span class="str">"btcusdt"</span>)
+puts <span class="str">"👁️  SensoryCortex online — streaming BTCUSDT tape"</span>
+puts <span class="str">"🧠 Nemesis is awake."</span>
+
+sleep  <span class="cmt"># Keep main thread alive</span></pre></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-header"><span class="code-filename">app/jobs/nightly_post_mortem.rb</span><span class="code-lang">ruby</span></div>
+    <div class="code-body"><pre><span class="kw">class</span> <span class="cls">NightlyPostMortem</span>
+  <span class="kw">def</span> <span class="mth">initialize</span>(hippocampus:, config_path:)
+    @memory      = hippocampus
+    @config_path = config_path
+    @llm         = <span class="cls">RubyLLM</span>.chat(model: <span class="cls">REASONING_MODEL</span>, provider: <span class="sym">:ollama</span>)
+  <span class="kw">end</span>
+
+  <span class="kw">def</span> <span class="mth">run</span>
+    losses = @memory.recent_losses(days: <span class="num">1</span>)
+    <span class="kw">return</span> puts(<span class="str">"📖 Post-mortem: No losses today. Great session."</span>) <span class="kw">if</span> losses.empty?
+
+    journal = losses.map { |p| p[<span class="str">"payload"</span>][<span class="str">"text"</span>] }.join(<span class="str">"\n\n"</span>)
+
+    prompt = <span class="str"><<~P
+      Review today's losing trades:
+      #{journal}
+
+      Identify cognitive biases (FOMO, revenge trading, moving stops, exiting early).
+      Suggest 2 concrete new rules for the Portfolio Manager's system prompt.
+
+      JSON: {
+        "biases": ["string"],
+        "new_rules": ["Rule 1: ...", "Rule 2: ..."],
+        "summary": "string"
+      }
+    P</span>
+
+    review = <span class="cls">Oj</span>.load(@llm.ask(prompt, response_format: { type: <span class="str">"json_object"</span> }).content)
+
+    <span class="cmt"># Append new rules to PM config</span>
+    <span class="cls">File</span>.open(@config_path, <span class="str">"a"</span>) <span class="kw">do</span> |f|
+      review[<span class="str">"new_rules"</span>].each { |r| f.puts(<span class="str">"# #{Date.today}: #{r}"</span>) }
+    <span class="kw">end</span>
+
+    puts <span class="str">"📖 Post-mortem complete: #{review['summary']}"</span>
+    puts <span class="str">"📋 New rules: #{review['new_rules'].join(' | ')}"</span>
+  <span class="kw">end</span>
+<span class="kw">end</span></pre></div>
+  </div>
+</div>
+</div>
+
+<!-- ════════════════════════════════════════ -->
+<!-- TAB: GEM STACK -->
+<!-- ════════════════════════════════════════ -->
+<div class="section" id="section-gems">
+<div class="container">
+  <div class="section-title">Complete Gem Stack</div>
+  <p class="section-desc">Every gem used by Nemesis, organised by brain lobe function.</p>
+
+  <div class="card">
+    <table class="gem-table">
+      <thead>
+        <tr>
+          <th>Gem</th>
+          <th>Version</th>
+          <th>Lobe / Role</th>
+          <th>Purpose</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="gem-name">ruby_llm</span></td>
+          <td><span class="gem-version">~> 1.2</span></td>
+          <td><span class="tag tag-purple">Prefrontal Cortex</span></td>
+          <td class="gem-purpose">Unified Ollama Cloud interface. JSON mode, tool calling, streaming, embed support.</td>
+        </tr>
+        <tr>
+          <td><span class="gem-name">langchainrb</span></td>
+          <td><span class="gem-version">~> 0.8</span></td>
+          <td><span class="tag tag-purple">Prefrontal Cortex</span></td>
+          <td class="gem-purpose">ReAct agent loop, vectorstore abstraction, document loaders for RAG ingestion.</td>
+        </tr>
+        <tr>
+          <td><span class="gem-name">oj</span></td>
+          <td><span class="gem-version">~> 3.16</span></td>
+          <td><span class="tag tag-purple">Prefrontal Cortex</span></td>
+          <td class="gem-purpose">Fast JSON parsing for LLM structured output — 10–20× faster than stdlib JSON.</td>
+        </tr>
+        <tr>
+          <td><span class="gem-name">wisper</span></td>
+          <td><span class="gem-version">~> 2.0</span></td>
+          <td><span class="tag">NervousSystem</span></td>
+          <td class="gem-purpose">Pub/Sub event bus. Decouples lobes so each can be independently tested and replaced.</td>
+        </tr>
+        <tr>
+          <td><span class="gem-name">concurrent-ruby</span></td>
+          <td><span class="gem-version">~> 1.2</span></td>
+          <td><span class="tag">NervousSystem</span></td>
+          <td class="gem-purpose">Thread-safe data structures, TimerTask for the 60s alpha wave heartbeat loop.</td>
+        </tr>
+        <tr>
+          <td><span class="gem-name">async</span></td>
+          <td><span class="gem-version">~> 2.8</span></td>
+          <td><span class="tag tag-amber">Motor Cortex</span></td>
+          <td class="gem-purpose">Non-blocking I/O for async TWAP/iceberg execution and WebSocket connections.</td>
+        </tr>
+        <tr>
+          <td><span class="gem-name">async-websocket</span></td>
+          <td><span class="gem-version">~> 0.25</span></td>
+          <td><span class="tag">SensoryCortex</span></td>
+          <td class="gem-purpose">Streams aggTrade, depth20, forceOrder from Binance FAPI WebSocket endpoint.</td>
+        </tr>
+        <tr>
+          <td><span class="gem-name">faraday</span></td>
+          <td><span class="gem-version">~> 2.9</span></td>
+          <td><span class="tag tag-amber">Motor Cortex</span></td>
+          <td class="gem-purpose">HTTP client for all Binance REST API calls (orders, prices, funding rates, OI).</td>
+        </tr>
+        <tr>
+          <td><span class="gem-name">faraday-retry</span></td>
+          <td><span class="gem-version">~> 2.2</span></td>
+          <td><span class="tag tag-amber">Motor Cortex</span></td>
+          <td class="gem-purpose">Auto-retry with backoff on 429 rate limit responses. Binance limit: 2400 req/min.</td>
+        </tr>
+        <tr>
+          <td><span class="gem-name">qdrant-ruby</span></td>
+          <td><span class="gem-version">~> 1.2</span></td>
+          <td><span class="tag tag-green">Hippocampus</span></td>
+          <td class="gem-purpose">Vector database client. Stores episodic trade memories as embeddings, runs cosine recall.</td>
+        </tr>
+        <tr>
+          <td><span class="gem-name">redis</span></td>
+          <td><span class="gem-version">~> 5.0</span></td>
+          <td><span class="tag tag-green">Hippocampus</span></td>
+          <td class="gem-purpose">Short-term working memory: current position state, live P&L, session flags (desk open/closed).</td>
+        </tr>
+        <tr>
+          <td><span class="gem-name">pg</span></td>
+          <td><span class="gem-version">~> 1.5</span></td>
+          <td><span class="tag tag-green">Hippocampus</span></td>
+          <td class="gem-purpose">PostgreSQL for long-term trade logs. Use pgvector extension to combine relational + RAG.</td>
+        </tr>
+        <tr>
+          <td><span class="gem-name">numo-narray</span></td>
+          <td><span class="gem-version">~> 0.9</span></td>
+          <td><span class="tag">SensoryCortex</span></td>
+          <td class="gem-purpose">N-dimensional arrays for order book math, CVD calculations, volume profiling.</td>
+        </tr>
+        <tr>
+          <td><span class="gem-name">talib-ruby</span></td>
+          <td><span class="gem-version">latest</span></td>
+          <td><span class="tag">SensoryCortex</span></td>
+          <td class="gem-purpose">ATR, RSI, MACD, Bollinger Bands — raw signal inputs for the reasoning layer.</td>
+        </tr>
+        <tr>
+          <td><span class="gem-name">descriptive_statistics</span></td>
+          <td><span class="gem-version">latest</span></td>
+          <td><span class="tag tag-red">Amygdala</span></td>
+          <td class="gem-purpose">VaR, standard deviation, correlation for CRO risk calculations.</td>
+        </tr>
+        <tr>
+          <td><span class="gem-name">matrix</span></td>
+          <td><span class="gem-version">stdlib</span></td>
+          <td><span class="tag tag-red">Amygdala</span></td>
+          <td class="gem-purpose">Cross-asset correlation matrix for position sizing penalty calculations.</td>
+        </tr>
+        <tr>
+          <td><span class="gem-name">prometheus-client</span></td>
+          <td><span class="gem-version">latest</span></td>
+          <td><span class="tag tag-amber">Observability</span></td>
+          <td class="gem-purpose">Metrics: intent accuracy rate, tool success, average slippage, P&L, risk breaches.</td>
+        </tr>
+        <tr>
+          <td><span class="gem-name">sentry-ruby</span></td>
+          <td><span class="gem-version">latest</span></td>
+          <td><span class="tag tag-amber">Observability</span></td>
+          <td class="gem-purpose">Exception tracking. Every unhandled error in any lobe is captured with full context.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout callout-warn">
+    <strong>Latency note:</strong> Ollama Cloud llama3:70b averages 800ms–2s per reasoning call. For sub-second strategies, precompute signals with talib-ruby and use the LLM only for plan generation and macro bias — not tick-by-tick decisions.
+  </div>
+
+  <div class="card" style="margin-top:20px">
+    <div class="card-title">🔜 Recommended Build Order</div>
+    <div class="card-body">
+      <div class="flow" style="margin-top:12px">
+        <div class="flow-step" data-n="1"><div><div class="flow-step-title">Ollama Cloud + ruby_llm basic ping</div><div class="flow-step-desc">Verify API key, JSON mode, and embedding with nomic-embed-text.</div></div></div>
+        <div class="flow-step" data-n="2"><div><div class="flow-step-title">BinanceFuturesClient on Testnet</div><div class="flow-step-desc">Implement get_price, place_limit_order, place_stop_order. Verify HMAC signing.</div></div></div>
+        <div class="flow-step" data-n="3"><div><div class="flow-step-title">Hippocampus (Qdrant)</div><div class="flow-step-desc">store_episode + recall. Seed with 20 synthetic trade episodes to verify cosine search.</div></div></div>
+        <div class="flow-step" data-n="4"><div><div class="flow-step-title">NervousSystem + SensoryCortex</div><div class="flow-step-desc">Wire WebSocket → CVD → wisper broadcast. Log every absorption signal detected.</div></div></div>
+        <div class="flow-step" data-n="5"><div><div class="flow-step-title">PrefrontalCortex + Amygdala</div><div class="flow-step-desc">Full reasoning loop: tape signal → Trade Plan → CRO gate → approved_order event. Paper-trade only.</div></div></div>
+        <div class="flow-step" data-n="6"><div><div class="flow-step-title">MotorCortex iceberg execution</div><div class="flow-step-desc">Enable live Testnet execution. Run 2–4 weeks, log every decision.</div></div></div>
+        <div class="flow-step" data-n="7"><div><div class="flow-step-title">Nightly Post-Mortem cron</div><div class="flow-step-desc">Run TradeJournalist every night. Verify new rules are being generated and appended.</div></div></div>
+        <div class="flow-step" data-n="8"><div><div class="flow-step-title">Prometheus + Sentry</div><div class="flow-step-desc">Add observability before any live capital. You need full decision logs to debug LLM behaviour.</div></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<script>
+  function showTab(id) {
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('section-' + id).classList.add('active');
+    event.target.classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  document.querySelectorAll('.collapsible-header').forEach(h => {
+    h.addEventListener('click', () => {
+      h.classList.toggle('open');
+      h.nextElementSibling.classList.toggle('open');
+    });
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nemesis: Cognitive Trading Architecture for Autonomous Crypto Futures</title>
+
+  <!-- Essential CDN Libraries -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            primary: {
+              50: 'hsl(210, 75%, 95%)',
+              100: 'hsl(210, 75%, 85%)',
+              200: 'hsl(210, 75%, 75%)',
+              300: 'hsl(210, 75%, 65%)',
+              400: 'hsl(210, 75%, 55%)',
+              500: 'hsl(210, 75%, 40%)',
+              600: 'hsl(210, 75%, 35%)',
+              700: 'hsl(210, 75%, 25%)',
+              800: 'hsl(210, 75%, 15%)',
+              900: 'hsl(210, 75%, 10%)'
+            },
+            accent: {
+              50: 'hsl(240, 65%, 95%)',
+              100: 'hsl(240, 65%, 85%)',
+              200: 'hsl(240, 65%, 75%)',
+              300: 'hsl(240, 65%, 65%)',
+              400: 'hsl(240, 65%, 60%)',
+              500: 'hsl(240, 65%, 55%)',
+              600: 'hsl(240, 65%, 50%)',
+              700: 'hsl(240, 65%, 40%)',
+              800: 'hsl(240, 65%, 30%)',
+              900: 'hsl(240, 65%, 20%)'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+  <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0"></script>
+
+  <!-- Preline UI Components -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/preline@2.0.3/dist/preline.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/preline@2.0.3/dist/preline.js"></script>
+
+  <!-- Micro-interactions & Custom Styles -->
+  <style>
+    html { scroll-behavior: smooth; }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+      html { scroll-behavior: auto; }
+    }
+
+    .btn-interactive {
+      transition: all 0.2s ease-out;
+    }
+
+    .btn-interactive:hover {
+      transform: scale(1.05);
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
+
+    .btn-interactive:active {
+      transform: scale(0.95);
+    }
+
+    .card-interactive {
+      transition: all 0.3s ease-out;
+      border: 1px solid transparent;
+      --border-lightness: 40%;
+    }
+
+    .dark .card-interactive {
+      --border-lightness: 60%;
+    }
+
+    .card-interactive:hover {
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+      filter: brightness(0.98);
+    }
+
+    /* Primary colored cards */
+    .card-interactive[class*="primary"]:hover,
+    .card-interactive[class*="white"]:hover,
+    .card-interactive[class*="gray-"]:hover {
+      border-color: hsl(210, 75%, var(--border-lightness));
+    }
+
+    /* Accent colored cards */
+    .card-interactive[class*="accent"]:hover {
+      border-color: hsl(240, 65%, var(--border-lightness));
+    }
+  </style>
+
+  <!-- Dark Mode Toggle Script -->
+  <script>
+    function toggleDarkMode() {
+      document.body.classList.toggle('dark');
+      const isDark = document.body.classList.contains('dark');
+      document.getElementById('sunIcon').style.display = isDark ? 'block' : 'none';
+      document.getElementById('moonIcon').style.display = isDark ? 'none' : 'block';
+    }
+  </script>
+</head>
+
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-300">
+  <!-- Citation System Script -->
+  <script>
+    function initCitationSystem() {
+      let i = 1, map = new Map();
+      document.querySelectorAll('[data-ref]').forEach(el => {
+        if (el.dataset.citationProcessed) return;
+        const raw = (el.getAttribute('data-ref')||'').trim();
+        if (!raw) return;
+
+        const parts = raw.split('|');
+        const url = parts[0].trim();
+        const idx = (parts[1]||'').trim() || map.get(raw) || (map.set(raw, String(i)), String(i++));
+
+        if (!el.textContent || !el.textContent.trim()) { el.dataset.citationProcessed = 'true'; return; }
+
+        const btn = document.createElement('sup'); btn.textContent = String(idx);
+        Object.assign(btn.style, { fontSize:'8px', color:'#fff', cursor:'pointer', top: '1px', fontWeight:'bold', backgroundColor:'#0284c7', borderRadius:'50%', transition:'all .15s', userSelect:'none', minWidth:'19px', height:'19px', marginLeft:'6px', display:'inline-flex', alignItems:'center', justifyContent:'center', boxShadow:'0 1px 3px rgba(0,0,0,.2)', lineHeight:'1'});
+        btn.addEventListener('mouseenter', ()=> Object.assign(btn.style, { backgroundColor:'#0369a1', transform:'scale(1.12)' }));
+        btn.addEventListener('mouseleave', ()=> Object.assign(btn.style, { backgroundColor:'#0284c7', transform:'scale(1)' }));
+        btn.addEventListener('click', e=>{ e.preventDefault(); e.stopPropagation(); window.open(url, '_blank'); });
+
+        el.appendChild(btn); el.dataset.citationProcessed = 'true';
+      });
+    }
+  </script>
+
+  <!-- Progress bar -->
+  <div class="fixed top-0 left-0 h-1 bg-primary-500 dark:bg-primary-400 z-[60] transition-all duration-300 ease-out" id="progressBar" style="width: 0%;"></div>
+
+  <!-- Floating Header -->
+  <header class="fixed top-0 left-0 right-0 z-50 backdrop-blur bg-gray-50/90 dark:bg-gray-900/90 border-b border-primary-500/20 dark:border-primary-600/20">
+    <nav class="max-w-7xl mx-auto px-6 py-4">
+      <div class="flex items-center justify-between">
+        <h1 class="text-xl font-bold text-primary-700 dark:text-primary-300">Nemesis Trading Architecture</h1>
+
+        <div class="flex items-center gap-6">
+          <a href="#home" class="btn-interactive text-sm font-medium text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-200 transition-colors">Home</a>
+          <a href="#architecture" class="btn-interactive text-sm font-medium text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-200 transition-colors">Architecture</a>
+          <a href="#technical" class="btn-interactive text-sm font-medium text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-200 transition-colors">Technical</a>
+          <a href="#strategies" class="btn-interactive text-sm font-medium text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-200 transition-colors">Strategies</a>
+          <a href="#risk" class="btn-interactive text-sm font-medium text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-200 transition-colors">Risk</a>
+          <a href="#learning" class="btn-interactive text-sm font-medium text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-200 transition-colors">Learning</a>
+          <a href="#conclusion" class="btn-interactive text-sm font-medium text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-200 transition-colors">Conclusion</a>
+
+          <button onclick="toggleDarkMode()" class="btn-interactive p-2 rounded-lg bg-primary-100 dark:bg-primary-800 text-primary-600 dark:text-primary-300 hover:bg-primary-200 dark:hover:bg-primary-700 transition-all">
+            <i data-lucide="sun" id="sunIcon" class="w-5 h-5" style="display:none;"></i>
+            <i data-lucide="moon" id="moonIcon" class="w-5 h-5"></i>
+          </button>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <!-- Main Content -->
+  <main class="min-h-screen">
+    <!-- Hero Section -->
+    <section id="home" class="py-40 bg-primary-50/50 dark:bg-gray-900" data-aos="fade-up">
+      <div class="max-w-5xl mx-auto px-6">
+        <h2 class="text-4xl md:text-5xl font-bold mb-6 text-primary-700 dark:text-primary-300">
+          Nemesis: Cognitive Trading Architecture for Autonomous Crypto Futures
+        </h2>
+        <p class="text-xl text-gray-700 dark:text-gray-300 mb-8 leading-relaxed">
+          A comprehensive research analysis of a professional-grade autonomous crypto futures trading agent integrating Ollama Cloud APIs with Ruby, featuring institutional trading strategies, advanced risk management, and continuous learning mechanisms.
+        </p>
+
+        <div class="grid md:grid-cols-3 gap-6 mt-12">
+          <div class="card-interactive p-6 bg-white/90 backdrop-blur-sm dark:bg-gray-800 rounded-xl shadow-md">
+            <div class="flex items-center space-x-4 mb-4">
+              <div class="flex-shrink-0 w-12 h-12 bg-primary-100 dark:bg-primary-900/30 rounded-lg flex items-center justify-center">
+                <i data-lucide="cpu" class="w-6 h-6 text-primary-600 dark:text-primary-400"></i>
+              </div>
+              <h3 class="font-semibold text-lg text-primary-700 dark:text-primary-300">Technical Implementation</h3>
+            </div>
+            <p class="text-sm text-gray-600 dark:text-gray-400">Ruby-based architecture with modern gems interfacing Ollama Cloud APIs for LLM reasoning and embeddings</p>
+          </div>
+
+          <div class="card-interactive p-6 bg-white/90 backdrop-blur-sm dark:bg-gray-800 rounded-xl shadow-md">
+            <div class="flex items-center space-x-4 mb-4">
+              <div class="flex-shrink-0 w-12 h-12 bg-accent-100 dark:bg-accent-900/30 rounded-lg flex items-center justify-center">
+                <i data-lucide="trending-up" class="w-6 h-6 text-accent-600 dark:text-accent-400"></i>
+              </div>
+              <h3 class="font-semibold text-lg text-accent-700 dark:text-accent-300">Trading Logic</h3>
+            </div>
+            <p class="text-sm text-gray-600 dark:text-gray-400">Professional concepts including CVD, volatility-adjusted sizing, and structured trade planning</p>
+          </div>
+
+          <div class="card-interactive p-6 bg-white/90 backdrop-blur-sm dark:bg-gray-800 rounded-xl shadow-md">
+            <div class="flex items-center space-x-4 mb-4">
+              <div class="flex-shrink-0 w-12 h-12 bg-primary-100 dark:bg-primary-900/30 rounded-lg flex items-center justify-center">
+                <i data-lucide="shield-check" class="w-6 h-6 text-primary-600 dark:text-primary-400"></i>
+              </div>
+              <h3 class="font-semibold text-lg text-primary-700 dark:text-primary-300">Risk Management</h3>
+            </div>
+            <p class="text-sm text-gray-600 dark:text-gray-400">Chief Risk Officer module enforcing Kelly Criterion, daily drawdown limits, and hard veto gates</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Architecture Overview Section -->
+    <section id="architecture" class="py-20 bg-white/80 dark:bg-gray-900" data-aos="fade-up">
+      <div class="max-w-6xl mx-auto px-6">
+        <h2 class="text-3xl font-bold mb-8 text-primary-700 dark:text-primary-300">
+          Multi-Agent Architecture Overview
+        </h2>
+
+        <div class="grid md:grid-cols-2 gap-8 items-start mb-12">
+          <div class="space-y-6">
+            <p class="text-gray-700 dark:text-gray-300" data-ref="https://tradingagents-ai.github.io/|7">
+              The TradingAgents framework introduces a novel stock trading architecture inspired by real-world trading firms, utilizing multiple LLM-powered agents with specialized roles. This multi-agent approach mirrors professional trading desks by deploying distinct agents for fundamental analysis, technical analysis, sentiment analysis, risk management, and trade execution.
+            </p>
+
+            <p class="text-gray-700 dark:text-gray-300" data-ref="https://finadium.com/researchers-build-agentic-ai-system-with-analysts-traders-risk-and-fund-managers/|401">
+              Significant progress has been made in automated problem-solving using societies of agents powered by large language models (LLMs). These multi-agent systems leverage specialized AI agents working together to analyze markets, manage risk, and make trading decisions through collaborative reasoning and debate.
+            </p>
+
+            <div class="pl-4 pr-3 py-3 border-l-4 border-primary-500 bg-primary-50/40 dark:bg-primary-900/30 rounded-r-lg">
+              <p class="text-sm font-medium text-primary-900 dark:text-primary-100 leading-relaxed" data-ref="https://alpustundag.com/fundframework/|69">
+                <i data-lucide="info" class="inline-block w-4 h-4 mr-1.5 -mt-0.5"></i>
+                Key insight: Instead of a single "large model", the architecture employs specialized agents—including LLM-powered reasoning agents—each responsible for a specific task, enabling more robust and reliable decision-making.
+              </p>
+            </div>
+          </div>
+
+          <img
+            src="https://cdn.qwenlm.ai/0000a88b-d2cc-49f9-96e4-fb8c33e3c8fb/578c301d-323e-4adf-9174-2e96bc287a6f/3af2afea-7619-4274-ba9f-36d67b045040.png?key=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyZXNvdXJjZV91c2VyX2lkIjoiMDAwMGE4OGItZDJjYy00OWY5LTk2ZTQtZmI4YzMzZTNjOGZiIiwicmVzb3VyY2VfaWQiOiI1NzhjMzAxZC0zMjNlLTRhZGYtOTE3NC0yZTk2YmMyODdhNmYiLCJyZXNvdXJjZV9jaGF0X2lkIjpudWxsfQ.T7SUjlsmwyOttdOJ-vqNaMnGIlP-bM9gi_BDZxYUbJ0"
+            alt="Modern system architecture diagram showing a central processing unit surrounded by six specialized agent modules arranged in a hexagonal pattern. The central unit is a blue circle (hex color #1a73b3) labeled 'Central Coordination'. The six surrounding modules are purple circles (hex color #6366f1) connected by thin blue lines forming a network. Each module contains an icon representing its function: a bar chart icon for 'Fundamental Analyst', a candlestick chart icon for 'Technical Analyst', a speech bubble icon for 'Sentiment Analyst', a shield icon for 'Risk Manager', a dollar sign icon for 'Portfolio Manager', and a checkmark icon for 'Execution Agent'. The background is a light gray gradient (hex color #f3f4f6) with subtle grid lines. All text labels are in dark gray (hex color #374151) and clearly legible."
+            class="w-full rounded-xl shadow-lg hover:shadow-2xl transition-shadow duration-300"
+          />
+        </div>
+
+        <div class="hs-accordion-group space-y-4">
+          <div class="hs-accordion card-interactive bg-white/80 backdrop-blur-sm dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+            <button class="hs-accordion-toggle w-full flex justify-between items-center p-4 text-left hover:bg-primary-50 dark:hover:bg-gray-700/50 transition-colors rounded-xl" id="hs-role-1">
+              <div class="flex items-center space-x-4">
+                <div class="flex-shrink-0 w-12 h-12 bg-primary-100 dark:bg-primary-900/30 rounded-lg flex items-center justify-center">
+                  <i data-lucide="file-text" class="w-6 h-6 text-primary-600 dark:text-primary-400"></i>
+                </div>
+                <span class="font-semibold text-lg text-primary-700 dark:text-primary-300">Fundamental Analyst Agent</span>
+              </div>
+              <i data-lucide="chevron-down" class="hs-accordion-active:rotate-180 transition-transform duration-300 w-5 h-5 text-primary-600 dark:text-primary-400"></i>
+            </button>
+            <div id="hs-collapse-role-1" class="hs-accordion-content hidden w-full overflow-hidden transition-[height] duration-300" aria-labelledby="hs-role-1">
+              <div class="p-6 pt-0 space-y-4">
+                <p class="text-gray-700 dark:text-gray-300" data-ref="https://arxiv.org/html/2501.00826v3|123">
+                  The Crypto Agent processes market dynamics and fundamental factors, analyzing on-chain metrics, protocol fundamentals, and macroeconomic indicators to generate alpha signals. This agent specializes in processing structured financial data and generating insights from traditional fundamental analysis sources.
+                </p>
+                <p class="text-gray-700 dark:text-gray-300" data-ref="https://arxiv.org/html/2510.23032v1|295">
+                  The Fundamental Analyst Agent operates within a layered multi-agent LLM framework for multi-modal financial information analysis, synthesizing textual reports, earnings announcements, and economic indicators to inform trading decisions.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="hs-accordion card-interactive bg-white/80 backdrop-blur-sm dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+            <button class="hs-accordion-toggle w-full flex justify-between items-center p-4 text-left hover:bg-primary-50 dark:hover:bg-gray-700/50 transition-colors rounded-xl" id="hs-role-2">
+              <div class="flex items-center space-x-4">
+                <div class="flex-shrink-0 w-12 h-12 bg-accent-100 dark:bg-accent-900/30 rounded-lg flex items-center justify-center">
+                  <i data-lucide="activity" class="w-6 h-6 text-accent-600 dark:text-accent-400"></i>
+                </div>
+                <span class="font-semibold text-lg text-accent-700 dark:text-accent-300">Technical Analyst Agent</span>
+              </div>
+              <i data-lucide="chevron-down" class="hs-accordion-active:rotate-180 transition-transform duration-300 w-5 h-5 text-accent-600 dark:text-accent-400"></i>
+            </button>
+            <div id="hs-collapse-role-2" class="hs-accordion-content hidden w-full overflow-hidden transition-[height] duration-300" aria-labelledby="hs-role-2">
+              <div class="p-6 pt-0 space-y-4">
+                <p class="text-gray-700 dark:text-gray-300" data-ref="https://www.facebook.com/groups/DeepNetGroup/posts/2586823951710471/|171">
+                  The Technical Analyst Agent performs deep technical analysis using advanced charting tools, trend identification algorithms, and statistical pattern recognition. This agent specializes in order flow analysis, Cumulative Volume Delta (CVD), and liquidity absorption detection to identify high-probability trade setups.
+                </p>
+                <p class="text-gray-700 dark:text-gray-300" data-ref="https://arxiv.org/html/2501.00826v3|123">
+                  The Technical Agent processes market microstructure data, analyzing order book dynamics, trade execution patterns, and short-term price action to generate tactical trading signals based on technical indicators and market timing.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="hs-accordion card-interactive bg-white/80 backdrop-blur-sm dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+            <button class="hs-accordion-toggle w-full flex justify-between items-center p-4 text-left hover:bg-primary-50 dark:hover:bg-gray-700/50 transition-colors rounded-xl" id="hs-role-3">
+              <div class="flex items-center space-x-4">
+                <div class="flex-shrink-0 w-12 h-12 bg-primary-100 dark:bg-primary-900/30 rounded-lg flex items-center justify-center">
+                  <i data-lucide="message-square" class="w-6 h-6 text-primary-600 dark:text-primary-400"></i>
+                </div>
+                <span class="font-semibold text-lg text-primary-700 dark:text-primary-300">Sentiment Analyst Agent</span>
+              </div>
+              <i data-lucide="chevron-down" class="hs-accordion-active:rotate-180 transition-transform duration-300 w-5 h-5 text-primary-600 dark:text-primary-400"></i>
+            </button>
+            <div id="hs-collapse-role-3" class="hs-accordion-content hidden w-full overflow-hidden transition-[height] duration-300" aria-labelledby="hs-role-3">
+              <div class="p-6 pt-0 space-y-4">
+                <p class="text-gray-700 dark:text-gray-300" data-ref="https://arxiv.org/html/2501.00826v3|123">
+                  The News Agent processes sentiment analysis from social media, news feeds, and market commentary to gauge market sentiment and identify potential catalysts. This agent specializes in natural language processing of unstructured text data to extract actionable trading signals.
+                </p>
+                <p class="text-gray-700 dark:text-gray-300" data-ref="https://github.com/danilobatson/ai-trading-agent-gemini|8">
+                  The Sentiment Analyst Agent analyzes real-time social media sentiment from various APIs and generates intelligent trading signals using LLM-powered sentiment classification, helping identify market mood shifts and potential contrarian opportunities.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="hs-accordion card-interactive bg-white/80 backdrop-blur-sm dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+            <button class="hs-accordion-toggle w-full flex justify-between items-center p-4 text-left hover:bg-primary-50 dark:hover:bg-gray-700/50 transition-colors rounded-xl" id="hs-role-4">
+              <div class="flex items-center space-x-4">
+                <div class="flex-shrink-0 w-12 h-12 bg-accent-100 dark:bg-accent-900/30 rounded-lg flex items-center justify-center">
+                  <i data-lucide="shield-alert" class="w-6 h-6 text-accent-600 dark:text-accent-400"></i>
+                </div>
+                <span class="font-semibold text-lg text-accent-700 dark:text-accent-300">Risk Management Agent</span>
+              </div>
+              <i data-lucide="chevron-down" class="hs-accordion-active:rotate-180 transition-transform duration-300 w-5 h-5 text-accent-600 dark:text-accent-400"></i>
+            </button>
+            <div id="hs-collapse-role-4" class="hs-accordion-content hidden w-full overflow-hidden transition-[height] duration-300" aria-labelledby="hs-role-4">
+              <div class="p-6 pt-0 space-y-4">
+                <p class="text-gray-700 dark:text-gray-300" data-ref="https://tradingagents-ai.com/|403">
+                  The Risk Management Team evaluates trading decisions and mitigates risk based on current market conditions, portfolio exposure, and predefined risk parameters. This agent enforces hard veto gates that decouple survival logic from LLM-generated signals.
+                </p>
+                <p class="text-gray-700 dark:text-gray-300" data-ref="https://www.reddit.com/r/AI_Agents/comments/1tasx0n/autonomous_ai_trading_is_harder_than_it_looks/|45">
+                  Risk management is deterministic and built into the execution layer itself, vetoing bad trades before they ever reach the market. This ensures that risk mitigation is not an afterthought but a core component of the trading system.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="hs-accordion card-interactive bg-white/80 backdrop-blur-sm dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+            <button class="hs-accordion-toggle w-full flex justify-between items-center p-4 text-left hover:bg-primary-50 dark:hover:bg-gray-700/50 transition-colors rounded-xl" id="hs-role-5">
+              <div class="flex items-center space-x-4">
+                <div class="flex-shrink-0 w-12 h-12 bg-primary-100 dark:bg-primary-900/30 rounded-lg flex items-center justify-center">
+                  <i data-lucide="briefcase" class="w-6 h-6 text-primary-600 dark:text-primary-400"></i>
+                </div>
+                <span class="font-semibold text-lg text-primary-700 dark:text-primary-300">Portfolio Manager Agent</span>
+              </div>
+              <i data-lucide="chevron-down" class="hs-accordion-active:rotate-180 transition-transform duration-300 w-5 h-5 text-primary-600 dark:text-primary-400"></i>
+            </button>
+            <div id="hs-collapse-role-5" class="hs-accordion-content hidden w-full overflow-hidden transition-[height] duration-300" aria-labelledby="hs-role-5">
+              <div class="p-6 pt-0 space-y-4">
+                <p class="text-gray-700 dark:text-gray-300" data-ref="https://tradingagents-ai.github.io/|7">
+                  The Portfolio Manager Agent optimizes asset allocation across multiple instruments, manages correlation risk, and ensures diversification objectives are met. This agent coordinates position sizing, rebalancing, and portfolio-level risk management.
+                </p>
+                <p class="text-gray-700 dark:text-gray-300" data-ref="https://github.com/Mecasa-hub/omen|238">
+                  The Portfolio Manager Agent maintains psychological profiles and cognitive bias awareness for each trading instrument, ensuring that portfolio decisions account for behavioral factors and market sentiment.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="hs-accordion card-interactive bg-white/80 backdrop-blur-sm dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+            <button class="hs-accordion-toggle w-full flex justify-between items-center p-4 text-left hover:bg-primary-50 dark:hover:bg-gray-700/50 transition-colors rounded-xl" id="hs-role-6">
+              <div class="flex items-center space-x-4">
+                <div class="flex-shrink-0 w-12 h-12 bg-accent-100 dark:bg-accent-900/30 rounded-lg flex items-center justify-center">
+                  <i data-lucide="zap" class="w-6 h-6 text-accent-600 dark:text-accent-400"></i>
+                </div>
+                <span class="font-semibold text-lg text-accent-700 dark:text-accent-300">Execution Agent</span>
+              </div>
+              <i data-lucide="chevron-down" class="hs-accordion-active:rotate-180 transition-transform duration-300 w-5 h-5 text-accent-600 dark:text-accent-400"></i>
+            </button>
+            <div id="hs-collapse-role-6" class="hs-accordion-content hidden w-full overflow-hidden transition-[height] duration-300" aria-labelledby="hs-role-6">
+              <div class="p-6 pt-0 space-y-4">
+                <p class="text-gray-700 dark:text-gray-300" data-ref="https://tradingagents-ai.com/|403">
+                  The Trader Agent makes final trading decisions based on the researchers' analysis, executing trades through Binance Futures API with optimized order routing and slippage minimization.
+                </p>
+                <p class="text-gray-700 dark:text-gray-300" data-ref="https://dev.to/daltonic/what-you-need-to-build-an-automated-ai-crypto-trading-bot-47fa|80">
+                  The Execution Agent handles order management, connecting to cryptocurrency exchanges for seamless buying and selling across multiple platforms. This agent manages trade execution logistics including order types, timing, and fills.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Technical Implementation Section -->
+    <section id="technical" class="py-20 bg-primary-50/50 dark:bg-gray-800" data-aos="fade-up">
+      <div class="max-w-6xl mx-auto px-6">
+        <h2 class="text-3xl font-bold mb-8 text-primary-700 dark:text-primary-300">
+          Technical Implementation with Ruby and Ollama Cloud
+        </h2>
+
+        <div class="grid md:grid-cols-2 gap-8 items-start mb-12">
+          <img
+            src="https://cdn.qwenlm.ai/0000a88b-d2cc-49f9-96e4-fb8c33e3c8fb/578c301d-323e-4adf-9174-2e96bc287a6f/d62ee781-8eeb-4514-a439-cf73fddfaefb.png?key=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyZXNvdXJjZV91c2VyX2lkIjoiMDAwMGE4OGItZDJjYy00OWY5LTk2ZTQtZmI4YzMzZTNjOGZiIiwicmVzb3VyY2VfaWQiOiI1NzhjMzAxZC0zMjNlLTRhZGYtOTE3NC0yZTk2YmMyODdhNmYiLCJyZXNvdXJjZV9jaGF0X2lkIjpudWxsfQ.T7SUjlsmwyOttdOJ-vqNaMnGIlP-bM9gi_BDZxYUbJ0"
+            alt="Modern software architecture diagram showing a central Ruby application framework surrounded by interconnected components. The center contains a Ruby logo (hexagon shape with 'Ruby' text in dark gray hex color #374151) connected to six circular modules arranged in a hexagonal pattern. Each module represents a key component: a blue circle (hex color #1a73b3) labeled 'Ollama Cloud API' with a cloud icon, a purple circle (hex color #6366f1) labeled 'Binance Futures API' with a lightning bolt icon, a green circle (hex color #10b981) labeled 'Vector Database' with a database icon, a red circle (hex color #ef4444) labeled 'Risk Engine' with a shield icon, an orange circle (hex color #f97316) labeled 'Memory System' with a brain icon, and a yellow circle (hex color #eab308) labeled 'Backtesting' with a chart icon. Thin blue lines (hex color #1a73b3) connect all modules to the central Ruby framework. The background is a light gray gradient (hex color #f3f4f6) with subtle network grid lines. All text labels are in dark gray (hex color #374151) and clearly legible."
+            class="w-full rounded-xl shadow-lg hover:shadow-2xl transition-shadow duration-300"
+          />
+
+          <div class="space-y-6">
+            <p class="text-gray-700 dark:text-gray-300" data-ref="https://github.com/adham90/ruby_llm-agents|120">
+              RubyLLM provides a Rails agent framework for Ruby with a clean DSL, automatic execution tracking, cost analytics, budget controls, and a beautiful real-time interface. This framework enables developers to build intelligent AI agents in Ruby with minimal boilerplate code.
+            </p>
+
+            <p class="text-gray-700 dark:text-gray-300" data-ref="https://docs.activeagents.ai/providers|125">
+              RubyLLM provides access to 15+ LLM providers including OpenAI, Anthropic, Gemini, Bedrock, Ollama, and more through a unified API. This flexibility allows seamless switching between models by changing configuration parameters.
+            </p>
+
+            <div class="pl-4 pr-3 py-3 border-l-4 border-primary-500 bg-primary-50/40 dark:bg-primary-900/30 rounded-r-lg">
+              <p class="text-sm font-medium text-primary-900 dark:text-primary-100 leading-relaxed" data-ref="https://rubyllm.com/async/|121">
+                <i data-lucide="info" class="inline-block w-4 h-4 mr-1.5 -mt-0.5"></i>
+                Scalability advantage: The combination of RubyLLM and async Ruby gives you the ability to handle thousands of concurrent AI conversations on modest hardware—something that would otherwise require expensive cloud infrastructure.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="mb-12">
+          <h3 class="text-2xl font-semibold mb-6 text-primary-700 dark:text-primary-300">
+            Core Technical Components
+          </h3>
+
+          <div class="grid md:grid-cols-3 gap-6">
+            <div class="card-interactive p-6 bg-white/90 backdrop-blur-sm dark:bg-gray-800 rounded-xl shadow-md">
+              <div class="flex items-center space-x-3 mb-4">
+                <div class="flex-shrink-0 w-10 h-10 bg-primary-100 dark:bg-primary-900/30 rounded-lg flex items-center justify-center">
+                  <i data-lucide="server" class="w-5 h-5 text-primary-600 dark:text-primary-400"></i>
+                </div>
+                <h4 class="font-semibold text-primary-700 dark:text-primary-300">Ollama Cloud Integration</h4>
+              </div>
+              <p class="text-sm text-gray-600 dark:text-gray-400" data-ref="https://medium.com/@rosgluk/constraining-llms-with-structured-output-ollama-qwen3-python-or-go-2f56ff41d720|112">Structured output support constrains LLM responses to match specific JSON schemas, transforming models from free-form text generators into predictable data extraction engines.</p>
+            </div>
+
+            <div class="card-interactive p-6 bg-white/90 backdrop-blur-sm dark:bg-gray-800 rounded-xl shadow-md">
+              <div class="flex items-center space-x-3 mb-4">
+                <div class="flex-shrink-0 w-10 h-10 bg-accent-100 dark:bg-accent-900/30 rounded-lg flex items-center justify-center">
+                  <i data-lucide="database" class="w-5 h-5 text-accent-600 dark:text-accent-400"></i>
+                </div>
+                <h4 class="font-semibold text-accent-700 dark:text-accent-300">Vector Database</h4>
+              </div>
+              <p class="text-sm text-gray-600 dark:text-gray-400" data-ref="https://www.youtube.com/watch?v=8UohljQozAU|220">Integration with Qdrant vector database enables efficient retrieval-augmented generation (RAG) for episodic memory storage and retrieval of trading experiences.</p>
+            </div>
+
+            <div class="card-interactive p-6 bg-white/90 backdrop-blur-sm dark:bg-gray-800 rounded-xl shadow-md">
+              <div class="flex items-center space-x-3 mb-4">
+                <div class="flex-shrink-0 w-10 h-10 bg-primary-100 dark:bg-primary-900/30 rounded-lg flex items-center justify-center">
+                  <i data-lucide="code" class="w-5 h-5 text-primary-600 dark:text-primary-400"></i>
+                </div>
+                <h4 class="font-semibold text-primary-700 dark:text-primary-300">Async Processing</h4>
+              </div>
+              <p class="text-sm text-gray-600 dark:text-gray-400" data-ref="https://learnitnow.medium.com/the-great-ai-debate-building-a-multi-agent-system-in-plain-ruby-no-frameworks-required-bd4a486b9ea9|122">Using lightweight ruby_llm with async Ruby enables non-blocking concurrent operations, allowing the system to handle multiple agents simultaneously without blocking.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="space-y-6">
+          <h3 class="text-2xl font-semibold text-primary-700 dark:text-primary-300">
+            Ollama Cloud Structured Outputs
+          </h3>
+
+          <p class="text-gray-700 dark:text-gray-300" data-ref="https://medium.com/@rosgluk/constraining-llms-with-structured-output-ollama-qwen3-python-or-go-2f56ff41d720|112">
+            Ollama introduced structured output support that constrains an LLM's responses to match a specific JSON schema by passing it in the
+            <span class="mx-1 px-1.5 py-0.5 rounded-md bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-300 font-semibold text-sm">format</span>
+            parameter. This transforms the model from a free-form text generator into a predictable data extraction engine, making it suitable for production applications.
+          </p>
+
+          <p class="text-gray-700 dark:text-gray-300" data-ref="https://www.glukhov.org/llm-performance/ollama/llm-structured-output-with-ollama-in-python-and-go/|113">
+            The primary benefit of structured output is that it provides strong guarantees about the data format, making it easy to parse with standard libraries like
+            <span class="mx-1 px-1.5 py-0.5 rounded-md bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-300 font-semibold text-sm">json.loads</span>
+            or validate against schemas (e.g., Pydantic). This eliminates the need for brittle regex parsing or heuristic-based data extraction from unstructured text.
+          </p>
+
+          <div class="pl-4 pr-3 py-3 border-l-4 border-amber-500 bg-amber-50/40 dark:bg-amber-900/30 rounded-r-lg">
+            <p class="text-sm font-medium text-amber-900 dark:text-amber-100 leading-relaxed" data-ref="https://medium.com/@rosgluk/constraining-llms-with-structured-output-ollama-qwen3-python-or-go-2f56ff41d720|112">
+              <i data-lucide="alert-triangle" class="inline-block w-4 h-4 mr-1.5 -mt-0.5"></i>
+              Important caveat: Despite benefits, models may still deviate from the schema by missing required properties, reordering keys, or including extra fields. Robust validation of the output is always necessary before processing.
+            </p>
+          </div>
+
+          <p class="text-gray-700 dark:text-gray-300" data-ref="https://medium.com/@rosgluk/constraining-llms-with-structured-output-ollama-qwen3-python-or-go-2f56ff41d720|112">
+            To maximize schema adherence and determinism, it is a recommended best practice to set the model's temperature to
+            <span class="mx-1 px-1.5 py-0.5 rounded-md bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-300 font-semibold text-sm">0</span>
+            (or a very low value). Ollama's documentation specifically recommends this for achieving more rigid compliance with the specified schema.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Institutional Trading Strategies Section -->
+    <section id="strategies" class="py-20 bg-white/80 dark:bg-gray-900" data-aos="fade-up">
+      <div class="max-w-6xl mx-auto px-6">
+        <h2 class="text-3xl font-bold mb-8 text-primary-700 dark:text-primary-300">
+          Institutional Trading Strategies and Order Flow Analysis
+        </h2>
+
+        <div class="grid md:grid-cols-2 gap-8 items-start mb-12">
+          <div class="space-y-6">
+            <p class="text-gray-700 dark:text-gray-300" data-ref="https://www.youtube.com/watch?v=QT7qtsiGnjQ|21">
+              Cumulative Volume Delta (CVD) is a strong trading indicator that can be used to trade alongside the smart money. It tracks the cumulative difference between buying and selling volume over time to reveal who is driving the market, providing crucial insights into order flow dynamics.
+            </p>
+
+            <p class="text-gray-700 dark:text-gray-300" data-ref="https://bookmap.com/blog/how-cumulative-volume-delta-transform-your-trading-strategy|22">
+              When the CVD line trends upward, it shows sustained buying pressure, indicating institutional accumulation. Conversely, a downward trend indicates sustained selling pressure and potential distribution phases. This metric helps identify whether smart money is accumulating or distributing positions.
+            </p>
+
+            <div class="pl-4 pr-3 py-3 border-l-4 border-primary-500 bg-primary-50/40 dark:bg-primary-900/30 rounded-r-lg">
+              <p class="text-sm font-medium text-primary-900 dark:text-primary-100 leading-relaxed" data-ref="https://www.binance.com/en/square/post/32735140448593|464">
+                <i data-lucide="info" class="inline-block w-4 h-4 mr-1.5 -mt-0.5"></i>
+                Key insight: CVD is the cumulative line of Delta values over time, revealing which side is spending more money to push the price throughout the session. This provides direct insight into market maker activity and institutional positioning.
+              </p>
+            </div>
+          </div>
+
+          <div class="card-interactive p-6 rounded-xl shadow-md bg-accent-50/50 dark:bg-gray-800">
+            <h3 class="text-xl font-semibold mb-4 text-accent-700 dark:text-accent-300" data-ref="https://www.tradingview.com/support/solutions/43000725058-cumulative-volume-delta/|28">
+              CVD Calculation Methodology
+            </h3>
+            <p class="text-gray-700 dark:text-gray-300 mb-4">
+              The Cumulative Volume Delta indicator uses intrabar volume and price fluctuations to estimate the difference (delta) between buying and selling pressure within each time period. This delta is then accumulated over time to create the cumulative volume delta line.
+            </p>
+            <div class="space-y-2">
+              <div class="flex items-center space-x-2">
+                <i data-lucide="circle-check" class="w-4 h-4 text-accent-600 dark:text-accent-400"></i>
+                <span class="text-sm text-gray-700 dark:text-gray-300">Tracks net transaction volume</span>
+              </div>
+              <div class="flex items-center space-x-2">
+                <i data-lucide="circle-check" class="w-4 h-4 text-accent-600 dark:text-accent-400"></i>
+                <span class="text-sm text-gray-700 dark:text-gray-300">Identifies institutional accumulation</span>
+              </div>
+              <div class="flex items-center space-x-2">
+                <i data-lucide="circle-check" class="w-4 h-4 text-accent-600 dark:text-accent-400"></i>
+                <span class="text-sm text-gray-700 dark:text-gray-300">Reveals market maker activity</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mb-12">
+          <h3 class="text-2xl font-semibold mb-6 text-primary-700 dark:text-primary-300">
+            Advanced Position Sizing Methods
+          </h3>
+
+          <div class="grid md:grid-cols-2 gap-6">
+            <div class="card-interactive p-6 bg-white/90 backdrop-blur-sm dark:bg-gray-800 rounded-xl shadow-md">
+              <h4 class="font-semibold text-lg text-primary-700 dark:text-primary-300 mb-3" data-ref="https://blog.traderspost.io/article/position-sizing-algorithms|12">
+                Kelly Criterion Formula
+              </h4>
+              <p class="text-gray-700 dark:text-gray-300 mb-3">
+                The basic Kelly formula is:
+                <span class="mx-1 px-1.5 py-0.5 rounded-md bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-300 font-semibold text-sm">f = (bp - q) / b</span>
+                where f represents the fraction of capital to risk, b represents the odds received on the wager, p represents the probability of winning, and q represents the probability of losing.
+              </p>
+              <p class="text-sm text-gray-600 dark:text-gray-400" data-ref="https://papers.ssrn.com/sol3/papers.cfm?abstract_id=6195358|13">
+                The classical Kelly criterion provides an optimal solution for position sizing by maximizing the expected logarithmic growth rate of capital, making it ideal for long-term wealth accumulation.
+              </p>
+            </div>
+
+            <div class="card-interactive p-6 bg-white/90 backdrop-blur-sm dark:bg-gray-800 rounded-xl shadow-md">
+              <h4 class="font-semibold text-lg text-accent-700 dark:text-accent-300 mb-3" data-ref="https://algoadvantage.substack.com/p/introduction-to-position-sizing-for|14">
+                ATR-Based Position Sizing
+              </h4>
+              <p class="text-gray-700 dark:text-gray-300 mb-3">
+                ATR-based sizing normalizes risk across instruments and market regimes by adjusting the position when Average True Range (ATR) changes. This method shrinks positions in volatile markets and expands them during calm periods.
+              </p>
+              <p class="text-sm text-gray-600 dark:text-gray-400" data-ref="https://wazirx.com/blog/position-sizing-strategies-crypto-futures/|321">
+                Volatility-based sizing adjusts your contract count based on market noise, ensuring consistent risk exposure regardless of underlying asset volatility.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="space-y-6">
+          <h3 class="text-2xl font-semibold text-primary-700 dark:text-primary-300">
+            Risk Management Parameters
+          </h3>
+
+          <p class="text-gray-700 dark:text-gray-300" data-ref="https://www.binance.com/en/square/post/305512773079777|101">
+            The fundamental risk management rule is to never risk more than
+            <span class="mx-1 px-1.5 py-0.5 rounded-md bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-300 font-semibold text-sm">1-2%</span>
+            of your total portfolio on a single trade. For a
+            <span class="mx-1 px-1.5 py-0.5 rounded-md bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-300 font-semibold text-sm">$10,000</span>
+            portfolio, this translates to a maximum risk per trade of
+            <span class="mx-1 px-1.5 py-0.5 rounded-md bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-300 font-semibold text-sm">$100-$200</span>.
+          </p>
+
+          <p class="text-gray-700 dark:text-gray-300" data-ref="https://www.binance.com/en/academy/articles/how-to-calculate-position-size-in-trading|316">
+            The position size calculation formula is:
+            <span class="mx-1 px-1.5 py-0.5 rounded-md bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-300 font-semibold text-sm">position size = account size x account risk / invalidation point</span>
+            This ensures precise risk management by linking position sizing directly to predetermined stop-loss levels.
+          </p>
+
+          <div class="pl-4 pr-3 py-3 border-l-4 border-amber-500 bg-amber-50/40 dark:bg-amber-900/30 rounded-r-lg">
+            <p class="text-sm font-medium text-amber-900 dark:text-amber-100 leading-relaxed" data-ref="https://www.facebook.com/quantinsti/posts/most-trading-strategies-fail-not-because-the-logic-is-wrongthey-fail-because-the/1024213236940854/|145">
+              <i data-lucide="alert-triangle" class="inline-block w-4 h-4 mr-1.5 -mt-0.5"></i>
+              Critical principle: Most trading strategies fail not because the logic is flawed, but because risk management is inadequate. Managing risk is the most important part of any trading system.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Risk Management Framework Section -->
+    <section id="risk" class="py-20 bg-primary-50/50 dark:bg-gray-800" data-aos="fade-up">
+      <div class="max-w-6xl mx-auto px-6">
+        <h2 class="text-3xl font-bold mb-8 text-primary-700 dark:text-primary-300">
+          Risk Management Framework and Chief Risk Officer Module
+        </h2>
+
+        <div class="grid md:grid-cols-2 gap-8 items-start mb-12">
+          <div class="card-interactive p-6 rounded-xl shadow-md bg-white/90 backdrop-blur-sm dark:bg-gray-800">
+            <h3 class="text-xl font-semibold mb-4 text-primary-700 dark:text-primary-300" data-ref="https://www.reddit.com/r/AI_Agents/comments/1tasx0n/autonomous_ai_trading_is_harder_than_it_looks/|45">
+              Deterministic Risk Controls
+            </h3>
+            <p class="text-gray-700 dark:text-gray-300 mb-4">
+              The risk management system is deterministic and built into the execution layer itself, vetoing bad trades before they ever reach the market. This ensures that risk mitigation is not an afterthought but a core component of the trading system.
+            </p>
+            <p class="text-gray-700 dark:text-gray-300">
+              Hard veto gates decouple survival logic from LLM-generated signals, preventing catastrophic losses even when the AI agents make incorrect assessments.
+            </p>
+          </div>
+
+          <div class="space-y-6">
+            <p class="text-gray-700 dark:text-gray-300" data-ref="https://medium.com/@ildiveliu/risk-before-returns-position-sizing-frameworks-fixed-fractional-atr-based-kelly-lite-4513f770a82a|19">
+              The Kelly criterion comes from probability theory and is designed to maximize long-term growth. It uses your win rate and average payoff ratio to calculate the optimal fraction of capital to risk on each trade, balancing aggressive growth with prudent risk management.
+            </p>
+
+            <p class="text-gray-700 dark:text-gray-300" data-ref="https://www.alphatheory.com/blog/kelly-criterion-in-practice-1|20">
+              Kelly's base assumption that
+              <span class="mx-1 px-1.5 py-0.5 rounded-md bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-300 font-semibold text-sm">100%</span>
+              of capital can be allocated to a single bet necessitates that the formula is naturally cautious when sizing a position that represents a large portion of the portfolio.
+            </p>
+
+            <div class="pl-4 pr-3 py-3 border-l-4 border-primary-500 bg-primary-50/40 dark:bg-primary-900/30 rounded-r-lg">
+              <p class="text-sm font-medium text-primary-900 dark:text-primary-100 leading-relaxed" data-ref="https://www.alphatheory.com/blog/kelly-criterion-in-practice-1|20">
+                <i data-lucide="info" class="inline-block w-4 h-4 mr-1.5 -mt-0.5"></i>
+                Risk adjustment: The Kelly criterion naturally scales position sizes based on the probability of success and the magnitude of potential gains versus losses, providing an elegant mathematical framework for risk-adjusted position sizing.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="mb-12">
+          <h3 class="text-2xl font-semibold mb-6 text-primary-700 dark:text-primary-300">
+            Multi-Level Risk Assessment
+          </h3>
+
+          <div class="hs-accordion-group space-y-4">
+            <div class="hs-accordion card-interactive bg-white/80 backdrop-blur-sm dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+              <button class="hs-accordion-toggle w-full flex justify-between items-center p-4 text-left hover:bg-primary-50 dark:hover:bg-gray-700/50 transition-colors rounded-xl" id="hs-risk-1">
+                <div class="flex items-center space-x-4">
+                  <div class="flex-shrink-0 w-12 h-12 bg-primary-100 dark:bg-primary-900/30 rounded-lg flex items-center justify-center">
+                    <i data-lucide="percent" class="w-6 h-6 text-primary-600 dark:text-primary-400"></i>
+                  </div>
+                  <span class="font-semibold text-lg text-primary-700 dark:text-primary-300">Position-Level Risk</span>
+                </div>
+                <i data-lucide="chevron-down" class="hs-accordion-active:rotate-180 transition-transform duration-300 w-5 h-5 text-primary-600 dark:text-primary-400"></i>
+              </button>
+              <div id="hs-collapse-risk-1" class="hs-accordion-content hidden w-full overflow-hidden transition-[height] duration-300" aria-labelledby="hs-risk-1">
+                <div class="p-6 pt-0 space-y-4">
+                  <p class="text-gray-700 dark:text-gray-300" data-ref="https://www.binance.com/en/square/post/305512773079777|101">
+                    Position-level risk management ensures that no single trade can cause catastrophic damage to the portfolio. The 1-2% rule prevents overexposure to individual positions.
+                  </p>
+                  <p class="text-gray-700 dark:text-gray-300" data-ref="https://www.binance.com/en/academy/articles/how-to-calculate-position-size-in-trading|316">
+                    Position sizing formulas link trade size directly to predetermined stop-loss levels, ensuring consistent risk exposure regardless of entry price or market conditions.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div class="hs-accordion card-interactive bg-white/80 backdrop-blur-sm dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+              <button class="hs-accordion-toggle w-full flex justify-between items-center p-4 text-left hover:bg-primary-50 dark:hover:bg-gray-700/50 transition-colors rounded-xl" id="hs-risk-2">
+                <div class="flex items-center space-x-4">
+                  <div class="flex-shrink-0 w-12 h-12 bg-accent-100 dark:bg-accent-900/30 rounded-lg flex items-center justify-center">
+                    <i data-lucide="layers" class="w-6 h-6 text-accent-600 dark:text-accent-400"></i>
+                  </div>
+                  <span class="font-semibold text-lg text-accent-700 dark:text-accent-300">Portfolio-Level Risk</span>
+                </div>
+                <i data-lucide="chevron-down" class="hs-accordion-active:rotate-180 transition-transform duration-300 w-5 h-5 text-accent-600 dark:text-accent-400"></i>
+              </button>
+              <div id="hs-collapse-risk-2" class="hs-accordion-content hidden w-full overflow-hidden transition-[height] duration-300" aria-labelledby="hs-risk-2">
+                <div class="p-6 pt-0 space-y-4">
+                  <p class="text-gray-700 dark:text-gray-300" data-ref="https://www.linkedin.com/pulse/cognitive-risk-management-brokerage-services-driven-ai-ramachandran-z0nbe|152">
+                    Portfolio-level risk management uses Multi-Agent Systems (MAS) architectures to simulate stress scenarios and test execution algorithms in controlled environments before live deployment.
+                  </p>
+                  <p class="text-gray-700 dark:text-gray-300" data-ref="https://www.scribd.com/document/856942587/Binance-Futures-Risk-Management-No-Watermark|106">
+                    Portfolio risk rules define the percentage of margin to use based on different leverage levels, protecting the rights and interests of Futures users by managing trading risks systematically.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div class="hs-accordion card-interactive bg-white/80 backdrop-blur-sm dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+              <button class="hs-accordion-toggle w-full flex justify-between items-center p-4 text-left hover:bg-primary-50 dark:hover:bg-gray-700/50 transition-colors rounded-xl" id="hs-risk-3">
+                <div class="flex items-center space-x-4">
+                  <div class="flex-shrink-0 w-12 h-12 bg-primary-100 dark:bg-primary-900/30 rounded-lg flex items-center justify-center">
+                    <i data-lucide="target" class="w-6 h-6 text-primary-600 dark:text-primary-400"></i>
+                  </div>
+                  <span class="font-semibold text-lg text-primary-700 dark:text-primary-300">Daily Drawdown Limits</span>
+                </div>
+                <i data-lucide="chevron-down" class="hs-accordion-active:rotate-180 transition-transform duration-300 w-5 h-5 text-primary-600 dark:text-primary-400"></i>
+              </button>
+              <div id="hs-collapse-risk-3" class="hs-accordion-content hidden w-full overflow-hidden transition-[height] duration-300" aria-labelledby="hs-risk-3">
+                <div class="p-6 pt-0 space-y-4">
+                  <p class="text-gray-700 dark:text-gray-300" data-ref="https://www.binance.com/en/support/faq/detail/f1afe9cbcd7a438492a0676e024f1897|107">
+                    Daily drawdown limits protect the rights and interests of Futures users by managing trading risks and preventing excessive losses during volatile market conditions.
+                  </p>
+                  <p class="text-gray-700 dark:text-gray-300" data-ref="https://www.binance.com/en/support/faq/detail/f1afe9cbcd7a438492a0676e024f1897|107">
+                    These rules are designed to ensure sustainable trading performance by limiting maximum daily losses and preventing catastrophic portfolio drawdowns.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="space-y-6">
+          <h3 class="text-2xl font-semibold text-primary-700 dark:text-primary-300">
+            Correlation and Diversification Checks
+          </h3>
+
+          <p class="text-gray-700 dark:text-gray-300" data-ref="https://www.linkedin.com/pulse/cognitive-risk-management-brokerage-services-driven-ai-ramachandran-z0nbe|152">
+            The Chief Risk Officer module performs comprehensive portfolio correlation checks to ensure diversification objectives are met. This includes analyzing cross-asset correlations, sector exposures, and geographic diversification to prevent concentration risk.
+          </p>
+
+          <p class="text-gray-700 dark:text-gray-300" data-ref="https://www.sec.gov/Archives/edgar/data/1758730/000175873025000094/tradeweb2024annualreport.pdf|153">
+            Software solutions span multiple components of the trading lifecycle and include pre-trade data and analytics, trade execution, and post-trade data processing. This ensures comprehensive risk oversight throughout the entire trading process.
+          </p>
+
+          <div class="pl-4 pr-3 py-3 border-l-4 border-amber-500 bg-amber-50/40 dark:bg-amber-900/30 rounded-r-lg">
+            <p class="text-sm font-medium text-amber-900 dark:text-amber-100 leading-relaxed" data-ref="https://www.reddit.com/r/Python/comments/12na2zh/how_naive_is_to_try_create_trading_bots_using/|147">
+              <i data-lucide="alert-triangle" class="inline-block w-4 h-4 mr-1.5 -mt-0.5"></i>
+              Reality check: Most institutional investment is about risk management, not exotic algorithms that can predict the future. Simple strategies like buying low and selling high often outperform complex models due to superior risk control.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Continuous Learning Mechanisms Section -->
+    <section id="learning" class="py-20 bg-white/80 dark:bg-gray-900" data-aos="fade-up">
+      <div class="max-w-6xl mx-auto px-6">
+        <h2 class="text-3xl font-bold mb-8 text-primary-700 dark:text-primary-300">
+          Continuous Learning and Post-Mortem Analysis
+        </h2>
+
+        <div class="grid md:grid-cols-2 gap-8 items-start mb-12">
+          <div class="space-y-6">
+            <p class="text-gray-700 dark:text-gray-300" data-ref="https://news.ycombinator.com/item?id=47108700|174">
+              HashTrade is an open-source autonomous trading agent that treats an LLM as a non-parametric decision function conditioned on episodic memory. This architecture enables the agent to learn from past experiences and adapt its trading strategies over time.
+            </p>
+
+            <p class="text-gray-700 dark:text-gray-300" data-ref="https://www.sitepoint.com/ai-agent-memory-guide/|329">
+              The complete guide to agent memory is structured as a postmortem-style analysis of failure patterns, paired with concrete implementation guidance. This approach ensures that the system learns from mistakes and continuously improves performance.
+            </p>
+
+            <div class="pl-4 pr-3 py-3 border-l-4 border-primary-500 bg-primary-50/40 dark:bg-primary-900/30 rounded-r-lg">
+              <p class="text-sm font-medium text-primary-900 dark:text-primary-100 leading-relaxed" data-ref="https://medium.com/data-science-collective/building-ai-agents-that-actually-learns-using-hindsight-memory-microsoft-agent-framework-df75aa20b3bb|330">
+                <i data-lucide="info" class="inline-block w-4 h-4 mr-1.5 -mt-0.5"></i>
+                Hindsight memory integration allows AI agents to learn from past decisions by analyzing successful and failed trades, extracting patterns, and updating decision-making algorithms accordingly.
+              </p>
+            </div>
+          </div>
+
+          <div class="card-interactive p-6 rounded-xl shadow-md bg-accent-50/50 dark:bg-gray-800">
+            <h3 class="text-xl font-semibold mb-4 text-accent-700 dark:text-accent-300" data-ref="https://gamma.app/docs/The-First-Agentic-Platform-for-Autonomous-Trading-Agents-9kpdpfystpwfsjz|61">
+              Adaptation Module
+            </h3>
+            <p class="text-gray-700 dark:text-gray-300 mb-4">
+              The adaptation module continuously monitors the agent's performance and market conditions, adapting trading strategies as needed to optimize returns. This dynamic adjustment ensures the system remains effective across changing market environments.
+            </p>
+            <div class="space-y-2">
+              <div class="flex items-center space-x-2">
+                <i data-lucide="refresh-cw" class="w-4 h-4 text-accent-600 dark:text-accent-400"></i>
+                <span class="text-sm text-gray-700 dark:text-gray-300">Continuous performance monitoring</span>
+              </div>
+              <div class="flex items-center space-x-2">
+                <i data-lucide="refresh-cw" class="w-4 h-4 text-accent-600 dark:text-accent-400"></i>
+                <span class="text-sm text-gray-700 dark:text-gray-300">Dynamic strategy adaptation</span>
+              </div>
+              <div class="flex items-center space-x-2">
+                <i data-lucide="refresh-cw" class="w-4 h-4 text-accent-600 dark:text-accent-400"></i>
+                <span class="text-sm text-gray-700 dark:text-gray-300">Market condition responsiveness</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mb-12">
+          <h3 class="text-2xl font-semibold mb-6 text-primary-700 dark:text-primary-300">
+            Post-Mortem Analysis Framework
+          </h3>
+
+          <div class="grid md:grid-cols-3 gap-6">
+            <div class="card-interactive p-6 bg-white/90 backdrop-blur-sm dark:bg-gray-800 rounded-xl shadow-md">
+              <div class="flex items-center space-x-3 mb-4">
+                <div class="flex-shrink-0 w-10 h-10 bg-primary-100 dark:bg-primary-900/30 rounded-lg flex items-center justify-center">
+                  <i data-lucide="clipboard-list" class="w-5 h-5 text-primary-600 dark:text-primary-400"></i>
+                </div>
+                <h4 class="font-semibold text-primary-700 dark:text-primary-300">Trade Documentation</h4>
+              </div>
+              <p class="text-sm text-gray-600 dark:text-gray-400" data-ref="https://www.tradelyser.com/glossary|257">Trade post-mortem is structured analysis after significant or teaching trades—wins and losses that provide valuable learning opportunities for system improvement.</p>
+            </div>
+
+            <div class="card-interactive p-6 bg-white/90 backdrop-blur-sm dark:bg-gray-800 rounded-xl shadow-md">
+              <div class="flex items-center space-x-3 mb-4">
+                <div class="flex-shrink-0 w-10 h-10 bg-accent-100 dark:bg-accent-900/30 rounded-lg flex items-center justify-center">
+                  <i data-lucide="brain" class="w-5 h-5 text-accent-600 dark:text-accent-400"></i>
+                </div>
+                <h4 class="font-semibold text-accent-700 dark:text-accent-300">Bias Detection</h4>
+              </div>
+              <p class="text-sm text-gray-600 dark:text-gray-400" data-ref="https://www.mdpi.com/3042-8130/1/1/3|130">Synthetic simulation frameworks examine how cognitive biases shape ethical decision-making in AI-mediated environments, particularly within education and research contexts.</p>
+            </div>
+
+            <div class="card-interactive p-6 bg-white/90 backdrop-blur-sm dark:bg-gray-800 rounded-xl shadow-md">
+              <div class="flex items-center space-x-3 mb-4">
+                <div class="flex-shrink-0 w-10 h-10 bg-primary-100 dark:bg-primary-900/30 rounded-lg flex items-center justify-center">
+                  <i data-lucide="settings" class="w-5 h-5 text-primary-600 dark:text-primary-400"></i>
+                </div>
+                <h4 class="font-semibold text-primary-700 dark:text-primary-300">Prompt Updates</h4>
+              </div>
+              <p class="text-sm text-gray-600 dark:text-gray-400" data-ref="https://agenta.ai/blog/prompt-versioning-guide|216">Prompt versioning tracks changes in a structured way so teams can see what changed, when it changed, and how those modifications affected system performance.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="space-y-6">
+          <h3 class="text-2xl font-semibold text-primary-700 dark:text-primary-300">
+            Cognitive Bias Mitigation
+          </h3>
+
+          <p class="text-gray-700 dark:text-gray-300" data-ref="https://arxiv.org/html/2601.08045v1|131">
+            This paper presents the first comprehensive study of cognitive biases in LLM-assisted development. A mixed-methods approach reveals how cognitive biases may shape ethical decision-making in AI-mediated environments, particularly within education and research.
+          </p>
+
+          <p class="text-gray-700 dark:text-gray-300" data-ref="https://aclanthology.org/2024.findings-emnlp.739.pdf|132">
+            BIASBUSTER is a framework designed to uncover, evaluate, and mitigate cognitive bias in LLMs, particularly in high-stakes decision-making scenarios. This framework helps identify systematic deviations from rational judgment in AI systems.
+          </p>
+
+          <div class="pl-4 pr-3 py-3 border-l-4 border-amber-500 bg-amber-50/40 dark:bg-amber-900/30 rounded-r-lg">
+            <p class="text-sm font-medium text-amber-900 dark:text-amber-100 leading-relaxed" data-ref="https://pmc.ncbi.nlm.nih.gov/articles/PMC12246145/|134">
+              <i data-lucide="alert-triangle" class="inline-block w-4 h-4 mr-1.5 -mt-0.5"></i>
+              Bias risk: Large language models show amplified cognitive biases in moral decision-making, systematically favoring inaction over action, and this bias is stronger than in humans.
+            </p>
+          </div>
+
+          <p class="text-gray-700 dark:text-gray-300" data-ref="https://www.researchgate.net/publication/396930748_Influence_of_AI_Trading_Tools_on_Cognitive_Biases_and_Investor_Behavior_An_Exploratory_Study|419">
+            The influence of AI trading tools on cognitive biases includes loss aversion, confirmation bias, and overconfidence bias. These biases can significantly impact trading decisions and portfolio performance, requiring systematic mitigation strategies.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Conclusion Section -->
+    <section id="conclusion" class="py-20 bg-primary-50/50 dark:bg-gray-800" data-aos="fade-up">
+      <div class="max-w-5xl mx-auto px-6">
+        <h2 class="text-3xl font-bold mb-8 text-primary-700 dark:text-primary-300">
+          Conclusion: The Future of Autonomous Crypto Futures Trading
+        </h2>
+
+        <div class="space-y-6">
+          <p class="text-gray-700 dark:text-gray-300" data-ref="https://github.com/tauricresearch/tradingagents|2">
+            The TradingAgents framework represents a revolutionary approach to autonomous crypto futures trading by mirroring the dynamics of real-world trading firms. This multi-agent architecture leverages specialized LLM-powered agents to achieve institutional-grade trading performance while maintaining robust risk management controls.
+          </p>
+
+          <p class="text-gray-700 dark:text-gray-300" data-ref="https://dysnix.com/blog/ai-agents-for-crypto-trading|41">
+            Autonomous AI trading agents represent the future of cryptocurrency markets, operating beyond simple rule-based bots to execute sophisticated strategies using real-time data analysis, machine learning, and adaptive decision-making. These agents can operate 24/7 without human intervention, providing consistent execution across volatile market conditions.
+          </p>
+
+          <p class="text-gray-700 dark:text-gray-300" data-ref="https://anant.us/blog/autonomous-ai-agents-and-financial-trading-whats-real-today-vs-whats-hype/|48">
+            An AI agent is a software system that can sense its environment (data, market prices, news feeds), reason about goals and constraints, and act upon the environment to achieve specific objectives. This autonomy enables sophisticated trading strategies that adapt to changing market conditions in real-time.
+          </p>
+
+          <div class="pl-4 pr-3 py-3 border-l-4 border-primary-500 bg-primary-50/40 dark:bg-primary-900/30 rounded-r-lg">
+            <p class="text-sm font-medium text-primary-900 dark:text-primary-100 leading-relaxed" data-ref="https://arxiv.org/html/2605.19337v1|42">
+              <i data-lucide="info" class="inline-block w-4 h-4 mr-1.5 -mt-0.5"></i>
+              Key advancement: Reviews of LLM-based autonomous agents across domains organize around agent construction, application, and evaluation, providing a comprehensive framework for understanding their capabilities and limitations in financial markets.
+            </p>
+          </div>
+
+          <p class="text-gray-700 dark:text-gray-300" data-ref="https://medium.com/ai-simplified-in-plain-english/the-lifecycle-of-an-algorithmic-trading-bot-from-optimization-to-autonomous-operation-3f9d5ceba12e|43">
+            The journey from concept to autonomous operation embodies a scientific approach to algorithmic trading, emphasizing data-driven decision-making and systematic evaluation. This methodology ensures that trading systems are built on solid empirical foundations rather than speculative assumptions.
+          </p>
+
+          <p class="text-gray-700 dark:text-gray-300" data-ref="https://www.youtube.com/watch?v=utkHIrvZ2Hw|44">
+            Most people think trading bots are only for elite coders, hedge funds, or people with fancy degrees. However, modern AI agents democratize access to sophisticated trading strategies, making institutional-grade tools available to retail traders and small investment firms.
+          </p>
+
+          <div class="mt-8 p-6 bg-white/90 backdrop-blur-sm dark:bg-gray-800 rounded-xl shadow-md">
+            <h3 class="text-xl font-semibold mb-4 text-primary-700 dark:text-primary-300">
+              System Integration Points
+            </h3>
+            <div class="grid md:grid-cols-2 gap-4">
+              <div class="flex items-center space-x-3">
+                <i data-lucide="check" class="w-5 h-5 text-primary-600 dark:text-primary-400"></i>
+                <span class="text-sm text-gray-700 dark:text-gray-300">Pre-market macro scanning and setup</span>
+              </div>
+              <div class="flex items-center space-x-3">
+                <i data-lucide="check" class="w-5 h-5 text-primary-600 dark:text-primary-400"></i>
+                <span class="text-sm text-gray-700 dark:text-gray-300">Intraday tape reading and execution</span>
+              </div>
+              <div class="flex items-center space-x-3">
+                <i data-lucide="check" class="w-5 h-5 text-primary-600 dark:text-primary-400"></i>
+                <span class="text-sm text-gray-700 dark:text-gray-300">Post-market journaling and analysis</span>
+              </div>
+              <div class="flex items-center space-x-3">
+                <i data-lucide="check" class="w-5 h-5 text-primary-600 dark:text-primary-400"></i>
+                <span class="text-sm text-gray-700 dark:text-gray-300">Weekend simulation and optimization</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-gray-900 dark:bg-black text-gray-300 py-12">
+    <div class="max-w-6xl mx-auto px-6">
+      <div class="grid md:grid-cols-3 gap-8">
+        <div>
+          <h3 class="text-lg font-semibold text-primary-400 mb-4">About Nemesis</h3>
+          <p class="text-sm text-gray-400">
+            A comprehensive research analysis of professional-grade autonomous crypto futures trading architecture integrating Ollama Cloud APIs with Ruby.
+          </p>
+        </div>
+
+        <div>
+          <h3 class="text-lg font-semibold text-primary-400 mb-4">Key Components</h3>
+          <ul class="space-y-2 text-sm text-gray-400">
+            <li class="flex items-center space-x-2">
+              <i data-lucide="arrow-right" class="w-4 h-4"></i>
+              <span>Multi-Agent Architecture</span>
+            </li>
+            <li class="flex items-center space-x-2">
+              <i data-lucide="arrow-right" class="w-4 h-4"></i>
+              <span>Ruby &amp; Ollama Cloud Integration</span>
+            </li>
+            <li class="flex items-center space-x-2">
+              <i data-lucide="arrow-right" class="w-4 h-4"></i>
+              <span>Institutional Trading Strategies</span>
+            </li>
+            <li class="flex items-center space-x-2">
+              <i data-lucide="arrow-right" class="w-4 h-4"></i>
+              <span>Advanced Risk Management</span>
+            </li>
+          </ul>
+        </div>
+
+        <div>
+          <h3 class="text-lg font-semibold text-primary-400 mb-4">Research Focus</h3>
+          <ul class="space-y-2 text-sm text-gray-400">
+            <li class="flex items-center space-x-2">
+              <i data-lucide="arrow-right" class="w-4 h-4"></i>
+              <span>Cognitive Trading Systems</span>
+            </li>
+            <li class="flex items-center space-x-2">
+              <i data-lucide="arrow-right" class="w-4 h-4"></i>
+              <span>Continuous Learning Loops</span>
+            </li>
+            <li class="flex items-center space-x-2">
+              <i data-lucide="arrow-right" class="w-4 h-4"></i>
+              <span>Episodic Memory Systems</span>
+            </li>
+            <li class="flex items-center space-x-2">
+              <i data-lucide="arrow-right" class="w-4 h-4"></i>
+              <span>Bias Mitigation Frameworks</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="border-t border-gray-800 mt-8 pt-8 text-center">
+        <p class="text-sm text-gray-500">
+          Research synthesis for educational purposes. All content derived from referenced sources.
+        </p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Initialize Libraries -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Initialize AOS
+      AOS.init({
+        duration: 800,
+        once: true,
+        offset: 100
+      });
+
+      // Initialize Lucide icons
+      lucide.createIcons();
+
+      // Progress bar functionality
+      const progressBar = document.getElementById('progressBar');
+      const updateProgressBar = () => {
+        const scrollTop = window.pageYOffset;
+        const docHeight = document.body.scrollHeight - window.innerHeight;
+        const scrollPercent = (scrollTop / docHeight) * 100;
+        progressBar.style.width = scrollPercent + '%';
+      };
+      window.addEventListener('scroll', updateProgressBar);
+
+      // Initialize Preline components
+      setTimeout(() => {
+        window.HSStaticMethods.autoInit();
+      }, 100);
+
+      // Initialize citation system
+      setTimeout(initCitationSystem, 200);
+    });
+  </script>
+</body>
+</html>
+
