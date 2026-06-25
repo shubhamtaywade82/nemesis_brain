@@ -41,7 +41,9 @@ class NightlyPostMortem
     PROMPT
 
     chat = RubyLLM.chat(model: NemesisBrain::REASONING_MODEL, provider: :ollama)
-    Oj.load(chat.ask(prompt, response_format: { type: "json_object" }).content)
+    raw = chat.ask(prompt, response_format: { type: "json_object" }).content.to_s
+    cleaned = raw.gsub(/^```json\n?/, "").gsub(/\n?```$/, "").strip
+    Oj.load(cleaned)
   end
 
   def paper_review

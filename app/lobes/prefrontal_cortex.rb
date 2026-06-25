@@ -70,7 +70,7 @@ class PrefrontalCortex
       JSON: { "bias": "LONG|SHORT|NEUTRAL", "confidence": float, "notes": "string" }
     PROMPT
 
-    bias = Oj.load(ask_llm(prompt))
+    bias = Oj.load(clean_llm_json(ask_llm(prompt)))
     @ns.broadcast(:macro_bias_updated, bias)
   rescue StandardError => e
     log("PM: Macro bias skip (#{e.message})")
@@ -99,7 +99,7 @@ class PrefrontalCortex
       #{Oj.dump(TRADE_PLAN_SCHEMA)}
     PROMPT
 
-    Oj.load(ask_llm(prompt, TRADE_PLAN_SCHEMA))
+    Oj.load(clean_llm_json(ask_llm(prompt, TRADE_PLAN_SCHEMA)))
   rescue StandardError
     paper_trade_plan(symbol:, direction:, price:)
   end
@@ -135,5 +135,9 @@ class PrefrontalCortex
 
   def log(message)
     puts "[#{Time.now.strftime('%H:%M:%S')}] #{message}"
+  end
+
+  def clean_llm_json(raw)
+    raw.to_s.gsub(/^```json\n?/, "").gsub(/\n?```$/, "").strip
   end
 end

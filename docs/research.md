@@ -25,7 +25,7 @@ require "oj"
 
 RubyLLM.configure do |c|
   c.ollama_api_key = ENV["OLLAMA_API_KEY"]
-  c.ollama_url     = "https://ollama.com/v1"
+  c.ollama_api_base = "https://ollama.com/v1"
 end
 
 INTENT_SCHEMA = {
@@ -406,7 +406,7 @@ require 'qdrant-ruby'
 
 RubyLLM.configure do |c|
   c.ollama_api_key = ENV["OLLAMA_API_KEY"]
-  c.ollama_url     = "https://ollama.com/v1"
+  c.ollama_api_base = "https://ollama.com/v1"
 end
 
 class Hippocampus

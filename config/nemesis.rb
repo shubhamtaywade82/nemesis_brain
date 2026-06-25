@@ -11,9 +11,37 @@ RubyLLM.configure do |config|
   config.ollama_api_base = ENV.fetch("OLLAMA_URL", "https://ollama.com/v1")
 end
 
+module RubyLLM
+  module Providers
+    class Ollama
+      module Embeddings
+        module_function
+
+        def embedding_url
+          '/api/embed'
+        end
+
+        def render_embedding_payload(text, model:, dimensions:)
+          { model: model, prompt: text }
+        end
+
+        def parse_embedding_response(response, model:, text:)
+          data = response.body
+          vectors = data['embedding']
+          vectors = vectors.is_a?(Array) ? vectors : [vectors]
+          input_tokens = data.dig('usage', 'prompt_tokens') || text.to_s.size
+          Embedding.new(vectors:, model: model.to_s, input_tokens:)
+        end
+      end
+
+      include Embeddings
+    end
+  end
+end
+
 module NemesisBrain
-  REASONING_MODEL = ENV.fetch("NEMESIS_REASONING_MODEL", "deepseek-v4-flash")
-  EMBED_MODEL = ENV.fetch("NEMESIS_EMBED_MODEL", "deepseek-v4-flash")
+  REASONING_MODEL = ENV.fetch("NEMESIS_REASONING_MODEL", "gpt-oss:20b")
+  EMBED_MODEL = ENV.fetch("NEMESIS_EMBED_MODEL", "gpt-oss:20b")
   BINANCE_REST = ENV.fetch("BINANCE_REST", "https://fapi.binance.com")
   BINANCE_WS = ENV.fetch("BINANCE_WS", "wss://fstream.binance.com")
   DEFAULT_SYMBOL = ENV.fetch("NEMESIS_SYMBOL", "btcusdt")

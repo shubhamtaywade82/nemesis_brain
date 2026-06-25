@@ -136,7 +136,7 @@ require "ruby_llm"
 
 RubyLLM.configure do |c|
   c.ollama_api_key = ENV["OLLAMA_API_KEY"]
-  c.ollama_url     = "https://ollama.com/v1"  # OpenAI-compatible endpoint
+  c.ollama_api_base = "https://ollama.com/v1"  # OpenAI-compatible endpoint
 end
 
 # Primary reasoning model (cloud GPU — no local GPU needed)
