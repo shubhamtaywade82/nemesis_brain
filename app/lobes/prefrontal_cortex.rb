@@ -30,12 +30,14 @@ class PrefrontalCortex
   end
 
   def tape_signal_detected(signal)
+    log("Signal received: #{signal[:type]} #{signal[:direction]} @ #{signal[:price]} (#{signal[:context]})") if NemesisBrain::VERBOSE_LOGS
     direction = signal[:direction]
     price = signal[:price]
     context = signal[:context]
     symbol = signal[:symbol]
 
     memories = @memory.recall("#{direction} absorption #{context}")
+    log("Memory recall returned #{memories.length} episodes") if NemesisBrain::VERBOSE_LOGS && memories.any?
     atr_pct = fetch_atr_pct(symbol || "BTCUSDT")
     trade_plan = generate_trade_plan(
       symbol: symbol || "BTCUSDT",
@@ -70,7 +72,9 @@ class PrefrontalCortex
       JSON: { "bias": "LONG|SHORT|NEUTRAL", "confidence": float, "notes": "string" }
     PROMPT
 
+    log("Macro bias prompt sent to LLM") if NemesisBrain::VERBOSE_LOGS
     bias = Oj.load(clean_llm_json(ask_llm(prompt)))
+    log("Macro bias result: #{Oj.dump(bias)}") if NemesisBrain::VERBOSE_LOGS
     @ns.broadcast(:macro_bias_updated, bias)
   rescue StandardError => e
     log("PM: Macro bias skip (#{e.message})")
@@ -99,7 +103,10 @@ class PrefrontalCortex
       #{Oj.dump(TRADE_PLAN_SCHEMA)}
     PROMPT
 
-    Oj.load(clean_llm_json(ask_llm(prompt, TRADE_PLAN_SCHEMA)))
+    log("Prompting LLM for #{symbol} #{direction.to_s.upcase} plan") if NemesisBrain::VERBOSE_LOGS
+    plan = Oj.load(clean_llm_json(ask_llm(prompt, TRADE_PLAN_SCHEMA)))
+    log("Trade plan result: #{Oj.dump(plan)}") if NemesisBrain::VERBOSE_LOGS
+    plan
   rescue StandardError
     paper_trade_plan(symbol:, direction:, price:)
   end
@@ -134,7 +141,7 @@ class PrefrontalCortex
   end
 
   def log(message)
-    puts "[#{Time.now.strftime('%H:%M:%S')}] #{message}"
+    puts(NemesisBrain::Log.colorize("[#{Time.now.strftime('%H:%M:%S')}] #{message}", :cyan))
   end
 
   def clean_llm_json(raw)

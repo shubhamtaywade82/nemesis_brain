@@ -26,6 +26,10 @@ class SensoryCortex
 
   private
 
+  def log(message)
+    puts(NemesisBrain::Log.colorize("[#{Time.now.strftime('%H:%M:%S')}] #{message}", :yellow))
+  end
+
   def start_paper_feed
     Async do
       loop do
@@ -130,10 +134,13 @@ class SensoryCortex
 
   def process_liquidation(data)
     order = data["o"]
-    side = order["S"]
+    symbol = order["s"]
+    direction = (order["S"] == "BUY") ? "LONG" : "SHORT"
     usd_value = order["q"].to_f * order["ap"].to_f
 
-    @ns.broadcast(:liquidation_detected, { side:, usd_value: })
+    log("Liquidation: #{direction} #{symbol} $#{usd_value.round(2)}") if NemesisBrain::VERBOSE_LOGS
+
+    @ns.broadcast(:liquidation_detected, { side: direction, usd_value: })
   end
 
   def update_orderbook(data)

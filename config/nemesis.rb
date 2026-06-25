@@ -40,8 +40,8 @@ module RubyLLM
 end
 
 module NemesisBrain
-  REASONING_MODEL = ENV.fetch("NEMESIS_REASONING_MODEL", "gpt-oss:20b")
-  EMBED_MODEL = ENV.fetch("NEMESIS_EMBED_MODEL", "gpt-oss:20b")
+  REASONING_MODEL = ENV.fetch("NEMESIS_REASONING_MODEL", "gemma4:31b")
+  EMBED_MODEL = ENV.fetch("NEMESIS_EMBED_MODEL", "gemma4:31b")
   BINANCE_REST = ENV.fetch("BINANCE_REST", "https://fapi.binance.com")
   BINANCE_WS = ENV.fetch("BINANCE_WS", "wss://fstream.binance.com")
   DEFAULT_SYMBOL = ENV.fetch("NEMESIS_SYMBOL", "btcusdt")
@@ -49,4 +49,25 @@ module NemesisBrain
   PAPER_MODE = ENV.fetch("NEMESIS_PAPER_MODE", "true") == "true"
   LLM_ENABLED = ENV.fetch("NEMESIS_LLM_ENABLED", "false") == "true" && ENV["OLLAMA_API_KEY"].to_s.strip != ""
   QDRANT_ENABLED = ENV["QDRANT_URL"].to_s.strip != ""
+  VERBOSE_LOGS = ENV["VERBOSE_LOGS"] == "true"
+
+  module Log
+    RESET = "\e[0m"
+    COLORS = {
+      cyan: "\e[36m",
+      green: "\e[32m",
+      red: "\e[31m",
+      magenta: "\e[35m",
+      yellow: "\e[33m",
+      white: "\e[37m",
+      gray: "\e[2m",
+      bold_white: "\e[1;37m"
+    }.freeze
+
+    def self.colorize(text, color)
+      "#{COLORS[color]}#{text}#{RESET}"
+    rescue StandardError
+      text
+    end
+  end
 end

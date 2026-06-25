@@ -79,6 +79,6 @@ class Amygdala
   end
 
   def log(message)
-    puts "[#{Time.now.strftime('%H:%M:%S')}] #{message}"
+    puts(NemesisBrain::Log.colorize("[#{Time.now.strftime('%H:%M:%S')}] #{message}", :red))
   end
 end

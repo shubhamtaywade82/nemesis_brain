@@ -7,6 +7,7 @@ puts "Booting Nemesis Cognitive Architecture..."
 puts "  Model : #{NemesisBrain::REASONING_MODEL} (LLM #{NemesisBrain::LLM_ENABLED ? 'enabled' : 'paper mode'})"
 puts "  Target: #{NemesisBrain::BINANCE_REST}"
 puts "  Memory: #{NemesisBrain::QDRANT_ENABLED ? 'Qdrant' : 'in-memory'}"
+puts "  Verbose logging: #{NemesisBrain::VERBOSE_LOGS ? 'ON' : 'OFF'}"
 
 components = NemesisBrain.boot(
   symbol: NemesisBrain::DEFAULT_SYMBOL,

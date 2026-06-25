@@ -22,6 +22,8 @@ class MotorCortex
     entry_low = plan["entry_zone"]["low"]
     entry_high = plan["entry_zone"]["high"]
 
+    log("Executing #{side} order: #{symbol} size=$#{total} leverage=#{leverage}x stop=#{stop_price}") if NemesisBrain::VERBOSE_LOGS
+
     @binance.set_leverage(symbol:, leverage:)
 
     Async do |task|
@@ -42,7 +44,7 @@ class MotorCortex
 
           qty = result["executedQty"].to_f
           total_qty += qty
-          puts "Tranche #{index + 1}/#{TRANCHE_COUNT} filled: #{qty} @ #{current_price}"
+          log("Tranche #{index + 1}/#{TRANCHE_COUNT} filled: #{qty} @ #{current_price}")
           sleep TRANCHE_DELAY
         end
       end
@@ -56,13 +58,17 @@ class MotorCortex
           quantity: total_qty.round(3),
           stop_price:
         )
-        puts "Stop-loss placed at #{stop_price}"
+        log("Stop-loss placed at #{stop_price}")
         @ns.broadcast(:execution_complete, { symbol:, qty: total_qty, stop: stop_price })
       end
     end
   end
 
   private
+
+  def log(message)
+    puts(NemesisBrain::Log.colorize("[#{Time.now.strftime('%H:%M:%S')}] #{message}", :green))
+  end
 
   def wait_for_entry_zone(symbol, low, high)
     loop do
