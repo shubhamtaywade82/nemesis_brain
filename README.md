@@ -1,10 +1,10 @@
-# Nemesis: Autonomous Trading Desk for Crypto Futures
+# QuantDesk: Autonomous Trading Desk for Crypto Futures
 
-A professional-grade autonomous trading system built with Ruby and Ollama, organized as a set of specialized trading-desk roles that communicate over a shared event bus. Nemesis makes disciplined, risk-aware trading decisions on cryptocurrency futures markets. LLM reasoning is powered by the [`ollama-client`](https://github.com/shubhamtaywade82/ollama-client) gem, which gives structured, schema-validated JSON output straight from `chat`/`generate` calls — no manual JSON parsing or repair logic required.
+A professional-grade autonomous trading system built with Ruby and Ollama, organized as a set of specialized trading-desk roles that communicate over a shared event bus. QuantDesk makes disciplined, risk-aware trading decisions on cryptocurrency futures markets. LLM reasoning is powered by the [`ollama-client`](https://github.com/shubhamtaywade82/ollama-client) gem, which gives structured, schema-validated JSON output straight from `chat`/`generate` calls — no manual JSON parsing or repair logic required.
 
 ## 📊 Architecture Overview
 
-Nemesis is designed as a **continuous, event-driven system** rather than a simple reactive script. Each desk owns one narrow responsibility and communicates only through the event bus:
+QuantDesk is designed as a **continuous, event-driven system** rather than a simple reactive script. Each desk owns one narrow responsibility and communicates only through the event bus:
 
 | Desk | Class | Function |
 |------|-------|----------|
@@ -69,7 +69,7 @@ BINANCE_WS=wss://fstream.binance.com
 VERBOSE_LOGS=false
 ```
 
-### Running Nemesis
+### Running QuantDesk
 
 ```bash
 # Boot the trading desk
@@ -85,7 +85,7 @@ Press `Ctrl+C` for graceful shutdown.
 
 ## 📚 Documentation
 
-- [Architecture Deep Dive](docs/nemesis_brain.md)
+- [Architecture Deep Dive](docs/quantdesk_architecture.md)
 - [Model-to-Desk Mapping](docs/Model-to-Desk.md)
 - [Research & Implementation Guide](docs/research.md)
 

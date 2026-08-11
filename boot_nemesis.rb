@@ -3,18 +3,18 @@
 
 require_relative "lib/nemesis"
 
-puts "Booting Nemesis..."
-puts "  Model : #{Nemesis::REASONING_MODEL} (LLM #{Nemesis::LLM_ENABLED ? 'enabled' : 'paper mode'})"
-puts "  Target: #{Nemesis::BINANCE_REST}"
-puts "  Memory: #{Nemesis::QDRANT_ENABLED ? 'Qdrant' : 'in-memory'}"
-puts "  Verbose logging: #{Nemesis::VERBOSE_LOGS ? 'ON' : 'OFF'}"
-puts "  Paper Mode: #{Nemesis::PAPER_MODE ? 'YES' : 'NO'}"
+puts "Booting QuantDesk..."
+puts "  Model : #{QuantDesk::REASONING_MODEL} (LLM #{QuantDesk::LLM_ENABLED ? 'enabled' : 'paper mode'})"
+puts "  Target: #{QuantDesk::BINANCE_REST}"
+puts "  Memory: #{QuantDesk::QDRANT_ENABLED ? 'Qdrant' : 'in-memory'}"
+puts "  Verbose logging: #{QuantDesk::VERBOSE_LOGS ? 'ON' : 'OFF'}"
+puts "  Paper Mode: #{QuantDesk::PAPER_MODE ? 'YES' : 'NO'}"
 puts ""
 
 begin
-  components = Nemesis.boot(
-    symbol: Nemesis::DEFAULT_SYMBOL,
-    equity: Nemesis::DEFAULT_EQUITY
+  components = QuantDesk.boot(
+    symbol: QuantDesk::DEFAULT_SYMBOL,
+    equity: QuantDesk::DEFAULT_EQUITY
   )
 
   components[:macro_pulse].execute
@@ -23,13 +23,13 @@ begin
   components[:tape_reader].start(symbol: components[:symbol])
   puts "✓ Tape reader online — streaming #{components[:symbol].upcase} tape"
   puts ""
-  puts "📈 Nemesis is live and monitoring the market."
+  puts "📈 QuantDesk is live and monitoring the market."
   puts "   Press Ctrl+C to shut down."
   puts ""
 
   # Graceful shutdown handler
   trap("INT") do
-    puts "\n⚠️  Shutting down Nemesis..."
+    puts "\n⚠️  Shutting down QuantDesk..."
     components[:macro_pulse].shutdown
     sleep 1
     puts "✓ Shutdown complete."
@@ -39,6 +39,6 @@ begin
   sleep
 rescue => e
   puts "❌ Boot failed: #{e.class}: #{e.message}"
-  puts e.backtrace.first(10).join("\n") if Nemesis::VERBOSE_LOGS
+  puts e.backtrace.first(10).join("\n") if QuantDesk::VERBOSE_LOGS
   exit 1
 end

@@ -39,7 +39,7 @@ RSpec.describe TradeJournal do
   end
 
   it "embeds trades through the injected Ollama client when the LLM is enabled" do
-    stub_const("Nemesis::LLM_ENABLED", true)
+    stub_const("QuantDesk::LLM_ENABLED", true)
     ollama = instance_double(Ollama::Client, embeddings: instance_double(Ollama::Embeddings))
     allow(ollama.embeddings).to receive(:embed).and_return(Array.new(768, 0.1))
     journal = described_class.new(ollama:)
@@ -50,7 +50,7 @@ RSpec.describe TradeJournal do
     )
 
     expect(ollama.embeddings).to have_received(:embed).with(
-      model: Nemesis::EMBED_MODEL, input: a_string_including("Breakout long")
+      model: QuantDesk::EMBED_MODEL, input: a_string_including("Breakout long")
     )
   end
 end

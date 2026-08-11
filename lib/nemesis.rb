@@ -18,7 +18,7 @@ ROOT = File.expand_path("..", __dir__)
   require_relative "../#{path}"
 end
 
-module Nemesis
+module QuantDesk
   class << self
     def boot(symbol: DEFAULT_SYMBOL, equity: DEFAULT_EQUITY)
       event_bus = EventBus.new

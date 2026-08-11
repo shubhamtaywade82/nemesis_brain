@@ -11,7 +11,7 @@ class NightlyTradeReview
     }
   }.freeze
 
-  def initialize(journal:, config_path:, ollama: Nemesis.ollama_client)
+  def initialize(journal:, config_path:, ollama: QuantDesk.ollama_client)
     @journal = journal
     @config_path = config_path
     @ollama = ollama
@@ -22,7 +22,7 @@ class NightlyTradeReview
     return puts("Trade review: No losses today.") if losses.empty?
 
     journal_text = losses.map { |entry| payload_of(entry)["text"] }.join("\n\n")
-    review = Nemesis::LLM_ENABLED ? run_llm_review(journal_text) : paper_review
+    review = QuantDesk::LLM_ENABLED ? run_llm_review(journal_text) : paper_review
 
     File.open(@config_path, "a") do |file|
       review["new_rules"].each { |rule| file.puts("# #{Date.today}: #{rule}") }
@@ -50,7 +50,7 @@ class NightlyTradeReview
       #{Oj.dump(REVIEW_SCHEMA)}
     PROMPT
 
-    @ollama.generate(prompt:, schema: REVIEW_SCHEMA, model: Nemesis::REASONING_MODEL)
+    @ollama.generate(prompt:, schema: REVIEW_SCHEMA, model: QuantDesk::REASONING_MODEL)
   rescue Ollama::Error => e
     warn "[NightlyTradeReview] LLM review failed (#{e.message}). Falling back to paper review."
     paper_review
