@@ -15,6 +15,8 @@ gem "websocket-client-simple", "~> 0.9"
 gem "faraday", "~> 2.9"
 gem "faraday-retry", "~> 2.2"
 
+gem "binance_usdm", path: File.expand_path("~/project/trading-workspace/sdk/binance-client")
+
 gem "qdrant-ruby", "~> 0.9"
 gem "redis", "~> 5.0"
 gem "pg", "~> 1.5"
