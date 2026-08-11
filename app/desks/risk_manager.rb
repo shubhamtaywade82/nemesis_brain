@@ -2,7 +2,7 @@
 
 require "descriptive_statistics/safe"
 
-class Amygdala
+class RiskManager
   MAX_RISK_PER_TRADE = 0.01
   MAX_DAILY_DRAWDOWN = 0.03
   MAX_LEVERAGE = 20
@@ -11,18 +11,18 @@ class Amygdala
 
   attr_reader :desk_open, :session_pnl
 
-  def initialize(nervous_system:, equity:, hippocampus: nil)
-    @ns = nervous_system
+  def initialize(event_bus:, equity:, journal: nil)
+    @events = event_bus
     @equity = equity
-    @memory = hippocampus
+    @journal = journal
     @session_pnl = 0.0
     @desk_open = true
-    @ns.subscribe(self)
+    @events.subscribe(self)
   end
 
   def trade_plan_generated(plan)
     unless @desk_open
-      log("AMYGDALA: Desk closed. Rejecting trade plan.")
+      log("RISK: Desk closed. Rejecting trade plan.")
       return
     end
 
@@ -35,7 +35,7 @@ class Amygdala
     rr_ratio = reward_distance / stop_distance
 
     if rr_ratio < MIN_RR_RATIO
-      log("AMYGDALA: R:R #{rr_ratio.round(2)} below #{MIN_RR_RATIO}. Rejected.")
+      log("RISK: R:R #{rr_ratio.round(2)} below #{MIN_RR_RATIO}. Rejected.")
       return
     end
 
@@ -48,9 +48,9 @@ class Amygdala
     adjusted_size = position_size * (1.0 - correlation_penalty(plan["side"]))
     leverage = (adjusted_size / @equity).ceil.clamp(1, MAX_LEVERAGE)
 
-    log("AMYGDALA: APPROVED size=$#{adjusted_size.round(2)} leverage=#{leverage}x R:R=#{rr_ratio.round(2)}")
+    log("RISK: APPROVED size=$#{adjusted_size.round(2)} leverage=#{leverage}x R:R=#{rr_ratio.round(2)}")
 
-    @ns.broadcast(
+    @events.broadcast(
       :approved_order,
       {
         plan:,
@@ -70,14 +70,14 @@ class Amygdala
     return unless drawdown_pct >= MAX_DAILY_DRAWDOWN
 
     @desk_open = false
-    log("AMYGDALA: Daily drawdown #{(drawdown_pct * 100).round(2)}% breached. Desk closed.")
-    @ns.broadcast(:desk_closed, { reason: "daily_drawdown_limit" })
+    log("RISK: Daily drawdown #{(drawdown_pct * 100).round(2)}% breached. Desk closed.")
+    @events.broadcast(:desk_closed, { reason: "daily_drawdown_limit" })
   end
 
   private
 
   def fetch_win_rate(side)
-    trades = @memory&.recent_trades(days: 7, limit: 200) || []
+    trades = @journal&.recent_trades(days: 7, limit: 200) || []
     side_trades = trades.select { |point| btc_trade_on_side?(point, side) }
     return DEFAULT_WIN_RATE if side_trades.empty?
 
@@ -103,6 +103,6 @@ class Amygdala
   end
 
   def log(message)
-    puts(NemesisBrain::Log.colorize("[#{Time.now.strftime('%H:%M:%S')}] #{message}", :red))
+    puts(Nemesis::Log.colorize("[#{Time.now.strftime('%H:%M:%S')}] #{message}", :red))
   end
 end

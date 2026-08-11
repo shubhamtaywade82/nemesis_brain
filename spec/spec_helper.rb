@@ -3,7 +3,7 @@
 ENV["NEMESIS_SKIP_DOTENV"] = "true"
 ENV["NEMESIS_PAPER_MODE"] = "true"
 
-require_relative "../lib/nemesis_brain"
+require_relative "../lib/nemesis"
 
 RSpec.configure do |config|
   config.expect_with :rspec do |expectations|

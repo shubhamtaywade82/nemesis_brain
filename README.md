@@ -1,19 +1,19 @@
-# Nemesis: Cognitive Trading Agent for Crypto Futures
+# Nemesis: Autonomous Trading Desk for Crypto Futures
 
-A professional-grade, biologically-inspired autonomous trading system built with Ruby and Ollama. Nemesis implements a cognitive architecture that mimics the structure of a human brain to make disciplined, risk-aware trading decisions on cryptocurrency futures markets. LLM reasoning is powered by the [`ollama-client`](https://github.com/shubhamtaywade82/ollama-client) gem, which gives structured, schema-validated JSON output straight from `chat`/`generate` calls — no manual JSON parsing or repair logic required.
+A professional-grade autonomous trading system built with Ruby and Ollama, organized as a set of specialized trading-desk roles that communicate over a shared event bus. Nemesis makes disciplined, risk-aware trading decisions on cryptocurrency futures markets. LLM reasoning is powered by the [`ollama-client`](https://github.com/shubhamtaywade82/ollama-client) gem, which gives structured, schema-validated JSON output straight from `chat`/`generate` calls — no manual JSON parsing or repair logic required.
 
-## 🧠 Architecture Overview
+## 📊 Architecture Overview
 
-Nemesis is designed as a **continuous cognitive system** rather than a simple reactive script. It maps brain regions to specialized trading desk roles:
+Nemesis is designed as a **continuous, event-driven system** rather than a simple reactive script. Each desk owns one narrow responsibility and communicates only through the event bus:
 
-| Brain Region | Desk Role | Function |
-|--------------|-----------|----------|
-| **Prefrontal Cortex** | Portfolio Manager (PM) | LLM-powered reasoning agent that synthesizes market data into structured trade plans with entry zones, invalidation points, and targets |
-| **Amygdala** | Chief Risk Officer (CRO) | Deterministic risk gate that enforces Kelly Criterion sizing, daily drawdown limits, and correlation checks |
-| **Hippocampus** | Trade Journal / Memory | Vector database (Qdrant) storing episodic memories of past trades for contextual recall |
-| **Sensory Cortex** | Tape Reader | Real-time WebSocket consumer analyzing order flow, CVD, and liquidations |
-| **Motor Cortex** | Execution Trader | Executes approved orders using TWAP/iceberg algorithms to minimize slippage |
-| **Nervous System** | Event Bus | Pub/sub architecture decoupling all components via Wisper |
+| Desk | Class | Function |
+|------|-------|----------|
+| **Portfolio Manager** | `PortfolioManager` | LLM-powered reasoning agent that synthesizes market data into structured trade plans with entry zones, invalidation points, and targets |
+| **Risk Manager** | `RiskManager` | Deterministic risk gate that enforces Kelly Criterion sizing, daily drawdown limits, and correlation checks |
+| **Trade Journal** | `TradeJournal` | Vector database (Qdrant) storing trade history for contextual recall |
+| **Tape Reader** | `TapeReader` | Real-time WebSocket consumer analyzing order flow, CVD, and liquidations |
+| **Execution Trader** | `ExecutionTrader` | Executes approved orders using TWAP/iceberg algorithms to minimize slippage |
+| **Event Bus** | `EventBus` | Pub/sub architecture decoupling all desks via Wisper |
 
 ## 🚀 Quick Start
 
@@ -72,43 +72,43 @@ VERBOSE_LOGS=false
 ### Running Nemesis
 
 ```bash
-# Boot the cognitive architecture
+# Boot the trading desk
 ruby boot_nemesis.rb
 ```
 
 The system will start:
-1. **Alpha Wave Loop** - Background introspection pulse (60s interval)
-2. **Sensory Cortex** - Real-time market data streaming
-3. **All Lobes** - Prefrontal Cortex, Amygdala, Motor Cortex, Hippocampus
+1. **Macro Pulse** - Background funding/open-interest pulse (60s interval)
+2. **Tape Reader** - Real-time market data streaming
+3. **All Desks** - Portfolio Manager, Risk Manager, Execution Trader, Trade Journal
 
 Press `Ctrl+C` for graceful shutdown.
 
 ## 📚 Documentation
 
 - [Architecture Deep Dive](docs/nemesis_brain.md)
-- [Model-to-Lobe Mapping](docs/Model-to-Lobe.md)
+- [Model-to-Desk Mapping](docs/Model-to-Desk.md)
 - [Research & Implementation Guide](docs/research.md)
 
 ## 🏗️ System Components
 
-### Nervous System (Event Bus)
+### Event Bus
 
-The central nervous system uses the `wisper` gem to implement a pub/sub pattern, allowing brain lobes to communicate without tight coupling:
+The event bus uses the `wisper` gem to implement a pub/sub pattern, allowing desks to communicate without tight coupling:
 
 ```ruby
-class NervousSystem
+class EventBus
   include Wisper::Publisher
   public :broadcast
 end
 ```
 
 Events broadcast include:
-- `:tape_signal_detected` - From Sensory Cortex
-- `:trade_plan_generated` - From Prefrontal Cortex
-- `:approved_order` - From Amygdala
-- `:alpha_wave_pulse` - Background macro updates
+- `:tape_signal_detected` - From Tape Reader
+- `:trade_plan_generated` - From Portfolio Manager
+- `:approved_order` - From Risk Manager
+- `:macro_snapshot_updated` - Background macro updates
 
-### Sensory Cortex (Tape Reader)
+### Tape Reader
 
 Processes real-time Binance Futures WebSocket streams:
 - Aggregated trades (`@aggTrade`)
@@ -117,17 +117,17 @@ Processes real-time Binance Futures WebSocket streams:
 
 Detects **absorption patterns** where high delta volume fails to move price, indicating limit order absorption.
 
-### Prefrontal Cortex (Portfolio Manager)
+### Portfolio Manager
 
 LLM-powered reasoning engine that:
-1. Receives tape signals from Sensory Cortex
-2. Retrieves relevant memories from Hippocampus
+1. Receives tape signals from the Tape Reader
+2. Retrieves similar past trades from the Trade Journal
 3. Generates structured trade plans in JSON format
 4. Grades setups (A/B/C) based on confluence
 
-Only "A" grade setups are passed to the Amygdala for risk approval.
+Only "A" grade setups are passed to the Risk Manager for approval.
 
-### Amygdala (Chief Risk Officer)
+### Risk Manager
 
 Deterministic risk management layer that:
 - Enforces minimum R:R ratio (default 2.0)
@@ -135,15 +135,15 @@ Deterministic risk management layer that:
 - Applies correlation penalties for concentrated portfolios
 - Implements daily drawdown kill switch (default 3%)
 
-### Hippocampus (Episodic Memory)
+### Trade Journal
 
-Stores and retrieves trade experiences using vector embeddings:
+Stores and retrieves trade history using vector embeddings:
 - **Qdrant** for production persistence
 - **In-memory fallback** for development/paper mode
 - Embeddings generated via `ollama-client` (local or cloud, depending on `OLLAMA_BASE_URL`)
 - Recall based on semantic similarity to current market context
 
-### Motor Cortex (Execution Trader)
+### Execution Trader
 
 Currently operates in **analysis-only mode**, logging intended orders without execution. Future implementation will include:
 - TWAP/VWAP execution algorithms
@@ -157,15 +157,17 @@ Currently operates in **analysis-only mode**, logging intended orders without ex
 bundle exec rspec
 
 # Run specific spec files
-bundle exec rspec spec/nervous_system_spec.rb
-bundle exec rspec spec/amygdala_spec.rb
-bundle exec rspec spec/hippocampus_spec.rb
+bundle exec rspec spec/event_bus_spec.rb
+bundle exec rspec spec/risk_manager_spec.rb
+bundle exec rspec spec/trade_journal_spec.rb
+bundle exec rspec spec/portfolio_manager_spec.rb
 ```
 
 Tests verify:
-- Event broadcasting between lobes
-- Risk gating logic in Amygdala
-- Memory storage/recall in Hippocampus
+- Event broadcasting between desks
+- Risk gating logic in the Risk Manager
+- Trade storage/recall in the Trade Journal
+- Ollama client wiring in the Portfolio Manager (via an injected fake client)
 
 ## 🔒 Safety Features
 
@@ -184,25 +186,25 @@ Hard-coded maximums prevent catastrophic losses:
 
 ### Graceful Shutdown
 Trap handler ensures clean termination:
-- Alpha wave timer stopped
+- Macro pulse timer stopped
 - WebSocket connections closed
 - State saved (when Qdrant enabled)
 
 ## 🛠️ Development
 
-### Adding New Lobes
+### Adding New Desks
 
-1. Create a new Ruby class in `app/lobes/`
+1. Create a new Ruby class in `app/desks/`
 2. Subscribe to relevant events in `initialize`
 3. Implement event handler methods matching broadcast names
-4. Add require path to `lib/nemesis_brain.rb`
+4. Add require path to `lib/nemesis.rb`
 
 Example:
 ```ruby
-class NewLobe
-  def initialize(nervous_system:)
-    @ns = nervous_system
-    @ns.subscribe(self)
+class NewDesk
+  def initialize(event_bus:)
+    @events = event_bus
+    @events.subscribe(self)
   end
 
   def tape_signal_detected(signal)
@@ -235,7 +237,7 @@ end
 - [ ] Live order execution with TWAP algorithms
 - [ ] Multi-symbol correlation tracking
 - [ ] ATR-based dynamic position sizing
-- [ ] Nightly post-mortem automation
+- [ ] Nightly trade review automation
 - [ ] Monte Carlo simulation for Kelly optimization
 - [ ] Economic calendar integration for macro events
 - [ ] Prometheus metrics export

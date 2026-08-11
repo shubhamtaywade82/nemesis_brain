@@ -6,7 +6,7 @@ require "oj"
 
 Oj.default_options = { mode: :compat }
 
-module NemesisBrain
+module Nemesis
   REASONING_MODEL = ENV.fetch("NEMESIS_REASONING_MODEL", "gemma4:31b")
   EMBED_MODEL = ENV.fetch("NEMESIS_EMBED_MODEL", "nomic-embed-text")
   BINANCE_REST = ENV.fetch("BINANCE_REST", "https://fapi.binance.com")
@@ -50,8 +50,8 @@ module NemesisBrain
       config
     end
 
-    # Shared Ollama client, used as the default `ollama:` dependency for lobes
-    # that reason with the LLM. Lobes still accept their own client for testing.
+    # Shared Ollama client, used as the default `ollama:` dependency for desks
+    # that reason with the LLM. Desks still accept their own client for testing.
     def ollama_client
       @ollama_client ||= Ollama::Client.new(config: ollama_config)
     end

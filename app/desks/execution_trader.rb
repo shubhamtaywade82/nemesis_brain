@@ -2,14 +2,14 @@
 
 require "async"
 
-class MotorCortex
+class ExecutionTrader
   TRANCHE_COUNT = 4
   TRANCHE_DELAY = 15
 
-  def initialize(nervous_system:, binance:)
-    @ns = nervous_system
+  def initialize(event_bus:, binance:)
+    @events = event_bus
     @binance = binance
-    @ns.subscribe(self)
+    @events.subscribe(self)
   end
 
   def approved_order(order_data)
@@ -24,7 +24,7 @@ class MotorCortex
 
     log("Analysis: #{side} #{symbol} size=$#{total} leverage=#{leverage}x stop=#{stop_price} (no order sent)")
 
-    @ns.broadcast(:order_analysis_logged, {
+    @events.broadcast(:order_analysis_logged, {
       symbol:,
       side:,
       size_usd: total,
@@ -34,5 +34,11 @@ class MotorCortex
       entry_high:,
       status: "analyzed_only"
     })
+  end
+
+  private
+
+  def log(message)
+    puts(Nemesis::Log.colorize("[#{Time.now.strftime('%H:%M:%S')}] #{message}", :green))
   end
 end

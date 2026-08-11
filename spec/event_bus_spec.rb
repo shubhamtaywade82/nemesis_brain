@@ -2,9 +2,9 @@
 
 require "spec_helper"
 
-RSpec.describe NervousSystem do
-  it "delivers tape signals to subscribed lobes" do
-    nervous_system = described_class.new
+RSpec.describe EventBus do
+  it "delivers tape signals to subscribed desks" do
+    event_bus = described_class.new
     received = []
 
     listener = Class.new do
@@ -12,8 +12,8 @@ RSpec.describe NervousSystem do
       define_method(:tape_signal_detected) { |payload| @buffer << payload }
     end.new(received)
 
-    nervous_system.subscribe(listener)
-    nervous_system.broadcast(
+    event_bus.subscribe(listener)
+    event_bus.broadcast(
       :tape_signal_detected,
       {
         type: :absorption,

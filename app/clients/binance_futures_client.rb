@@ -8,11 +8,11 @@ require "securerandom"
 
 class BinanceFuturesClient
   class TradeDisabledError < StandardError; end
-  def initialize(api_key:, secret_key:, base_url: NemesisBrain::BINANCE_REST, recv_window: 5000)
+  def initialize(api_key:, secret_key:, base_url: Nemesis::BINANCE_REST, recv_window: 5000)
     @api_key = api_key
     @secret = secret_key
     @recv = recv_window
-    @paper = NemesisBrain::PAPER_MODE || api_key == "paper"
+    @paper = Nemesis::PAPER_MODE || api_key == "paper"
     @conn = Faraday.new(base_url) do |faraday|
       faraday.request :retry, max: 3, interval: 0.5, retry_statuses: [429]
       faraday.adapter Faraday.default_adapter

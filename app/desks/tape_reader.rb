@@ -3,27 +3,27 @@
 require "async"
 require "numo/narray"
 
-class SensoryCortex
+class TapeReader
   CVD_WINDOW_SIZE = 200
   ABSORPTION_NOTIONAL_THRESHOLD = 1_000_000 # USD delta absorbed without a matching price move
   ABSORPTION_PRICE_THRESHOLD = 0.05
 
-  def initialize(nervous_system)
-    @ns = nervous_system
+  def initialize(event_bus)
+    @events = event_bus
     @cvd = []
     @prices = []
     @ob_bids = Numo::DFloat.zeros(20)
     @ob_asks = Numo::DFloat.zeros(20)
-    @symbol = NemesisBrain::DEFAULT_SYMBOL
+    @symbol = Nemesis::DEFAULT_SYMBOL
   end
 
-  def start(symbol: NemesisBrain::DEFAULT_SYMBOL)
+  def start(symbol: Nemesis::DEFAULT_SYMBOL)
     @symbol = symbol
     Thread.new { stream_binance(symbol) }
   end
 
   def log(message)
-    puts(NemesisBrain::Log.colorize("[#{Time.now.strftime('%H:%M:%S')}] #{message}", :yellow))
+    puts(Nemesis::Log.colorize("[#{Time.now.strftime('%H:%M:%S')}] #{message}", :yellow))
   end
 
   def stream_binance(symbol)
@@ -34,7 +34,7 @@ class SensoryCortex
       "#{symbol}@depth20",
       "#{symbol}@forceOrder"
     ]
-    url = "#{NemesisBrain::BINANCE_WS}/stream?streams=#{streams.join('/')}"
+    url = "#{Nemesis::BINANCE_WS}/stream?streams=#{streams.join('/')}"
 
     ws = WebSocket::Client::Simple.connect(url)
     ctx = self
@@ -42,13 +42,13 @@ class SensoryCortex
     ws.on :message do |event|
       ctx.route_event(Oj.load(event.data))
     rescue Oj::ParseError => e
-      ctx.log("WebSocket parse error: #{e.message}") if NemesisBrain::VERBOSE_LOGS
+      ctx.log("WebSocket parse error: #{e.message}") if Nemesis::VERBOSE_LOGS
     rescue StandardError => e
-      ctx.log("WebSocket message handler error: #{e.class}: #{e.message}") if NemesisBrain::VERBOSE_LOGS
+      ctx.log("WebSocket message handler error: #{e.class}: #{e.message}") if Nemesis::VERBOSE_LOGS
     end
     ws.on :error do |event|
-      if NemesisBrain::VERBOSE_LOGS
-        puts(NemesisBrain::Log.colorize("WebSocket error: #{event.inspect}", :red))
+      if Nemesis::VERBOSE_LOGS
+        puts(Nemesis::Log.colorize("WebSocket error: #{event.inspect}", :red))
         if event.respond_to?(:backtrace)
           puts event.backtrace.first(10).join("\n")
         end
@@ -57,7 +57,7 @@ class SensoryCortex
     ws.on :close do |event|
       code = event.respond_to?(:code) ? event.code : "unknown"
       reason = event.respond_to?(:reason) ? event.reason : ""
-      ctx.log("WebSocket closed: #{code} #{reason}") if NemesisBrain::VERBOSE_LOGS
+      ctx.log("WebSocket closed: #{code} #{reason}") if Nemesis::VERBOSE_LOGS
       sleep 5
       stream_binance(symbol)
     end
@@ -105,7 +105,7 @@ class SensoryCortex
 
     direction = cumulative_delta.positive? ? :long : :short
 
-    @ns.broadcast(
+    @events.broadcast(
       :tape_signal_detected,
       {
         type: :absorption,
@@ -133,9 +133,9 @@ class SensoryCortex
     direction = (order["S"] == "BUY") ? "LONG" : "SHORT"
     usd_value = order["q"].to_f * order["ap"].to_f
 
-    log("Liquidation: #{direction} #{symbol} $#{usd_value.round(2)}") if NemesisBrain::VERBOSE_LOGS
+    log("Liquidation: #{direction} #{symbol} $#{usd_value.round(2)}") if Nemesis::VERBOSE_LOGS
 
-    @ns.broadcast(:liquidation_detected, { side: direction, usd_value: })
+    @events.broadcast(:liquidation_detected, { side: direction, usd_value: })
   end
 
   def update_orderbook(data)
