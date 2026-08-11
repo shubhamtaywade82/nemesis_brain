@@ -5,7 +5,7 @@ require "numo/narray"
 
 class SensoryCortex
   CVD_WINDOW_SIZE = 200
-  ABSORPTION_DELTA_THRESHOLD = 1_000_000
+  ABSORPTION_NOTIONAL_THRESHOLD = 1_000_000 # USD delta absorbed without a matching price move
   ABSORPTION_PRICE_THRESHOLD = 0.05
 
   def initialize(nervous_system)
@@ -86,20 +86,21 @@ class SensoryCortex
     price = trade["p"].to_f
     side = trade["m"] ? :sell : :buy
 
-    delta = side == :buy ? quantity : -quantity
-    @cvd << delta
+    notional_delta = side == :buy ? quantity * price : -(quantity * price)
+    @cvd << notional_delta
     @cvd.shift if @cvd.size > CVD_WINDOW_SIZE
     @prices << price
+    @prices.shift if @prices.size > CVD_WINDOW_SIZE
 
-    detect_absorption(delta)
+    detect_absorption
   end
 
-  def detect_absorption(_delta)
+  def detect_absorption
     return if @prices.size < 10
 
     cumulative_delta = @cvd.last(20).sum
     price_change_pct = ((@prices.last - @prices[-20]) / @prices[-20]).abs * 100
-    return unless cumulative_delta.abs > ABSORPTION_DELTA_THRESHOLD
+    return unless cumulative_delta.abs > ABSORPTION_NOTIONAL_THRESHOLD
     return unless price_change_pct < ABSORPTION_PRICE_THRESHOLD
 
     direction = cumulative_delta.positive? ? :long : :short
@@ -113,7 +114,7 @@ class SensoryCortex
         price: @prices.last,
         symbol: @symbol.upcase,
         ob_imbalance: calculate_ob_imbalance,
-        context: "Delta=#{cumulative_delta.round(0)} absorbed at #{@prices.last}. Price unmoved."
+        context: "Delta=$#{cumulative_delta.round(0)} absorbed at #{@prices.last}. Price unmoved."
       }
     )
   end

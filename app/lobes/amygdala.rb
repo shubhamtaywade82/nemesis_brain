@@ -7,6 +7,7 @@ class Amygdala
   MAX_DAILY_DRAWDOWN = 0.03
   MAX_LEVERAGE = 20
   MIN_RR_RATIO = 2.0
+  DEFAULT_WIN_RATE = 0.45
 
   attr_reader :desk_open, :session_pnl
 
@@ -44,8 +45,8 @@ class Amygdala
 
     risk_amount = @equity * kelly_fraction
     position_size = risk_amount / stop_distance
-    leverage = (position_size / @equity).ceil.clamp(1, MAX_LEVERAGE)
     adjusted_size = position_size * (1.0 - correlation_penalty(plan["side"]))
+    leverage = (adjusted_size / @equity).ceil.clamp(1, MAX_LEVERAGE)
 
     log("AMYGDALA: APPROVED size=$#{adjusted_size.round(2)} leverage=#{leverage}x R:R=#{rr_ratio.round(2)}")
 
@@ -76,24 +77,25 @@ class Amygdala
   private
 
   def fetch_win_rate(side)
-    losses = @memory&.recent_losses(days: 7, limit: 100) || []
-    return 0.45 if losses.empty?
+    trades = @memory&.recent_trades(days: 7, limit: 200) || []
+    side_trades = trades.select { |point| btc_trade_on_side?(point, side) }
+    return DEFAULT_WIN_RATE if side_trades.empty?
 
-    side_losses = losses.count do |point|
-      payload = point.is_a?(Hash) && point["payload"] ? point["payload"] : point[:payload]
-      (payload["symbol"] || "").include?("BTC") && 
+    wins = side_trades.count { |point| payload_of(point)["win"] }
+    (wins.to_f / side_trades.size).clamp(0.3, 0.7)
+  end
+
+  def btc_trade_on_side?(point, side)
+    payload = payload_of(point)
+    (payload["symbol"] || "").include?("BTC") &&
       ((side == "LONG" && payload["side"] == "long") || (side == "SHORT" && payload["side"] == "short"))
-    end
+  end
 
-    total = losses.count do |point|
-      payload = point.is_a?(Hash) && point["payload"] ? point["payload"] : point[:payload]
-      (payload["symbol"] || "").include?("BTC")
-    end
-
-    return 0.45 if total.zero?
-
-    win_count = total - side_losses
-    (win_count.to_f / total).clamp(0.3, 0.7)
+  # Qdrant returns string-keyed payloads; the in-memory fallback stores symbol
+  # keys. Normalize to strings so callers don't need to know which store is active.
+  def payload_of(point)
+    payload = point.is_a?(Hash) && point.key?("payload") ? point["payload"] : point[:payload]
+    payload.transform_keys(&:to_s)
   end
 
   def correlation_penalty(_side)

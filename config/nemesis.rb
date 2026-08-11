@@ -1,53 +1,20 @@
 # frozen_string_literal: true
 
 require "dotenv/load" if ENV["NEMESIS_SKIP_DOTENV"] != "true"
-require "ruby_llm"
+require "ollama_client"
 require "oj"
 
 Oj.default_options = { mode: :compat }
 
-RubyLLM.configure do |config|
-  config.ollama_api_key = ENV["OLLAMA_API_KEY"]
-  config.ollama_api_base = ENV.fetch("OLLAMA_URL", "https://ollama.com/v1")
-end
-
-module RubyLLM
-  module Providers
-    class Ollama
-      module Embeddings
-        module_function
-
-        def embedding_url
-          '/api/embed'
-        end
-
-        def render_embedding_payload(text, model:, dimensions:)
-          { model: model, prompt: text }
-        end
-
-        def parse_embedding_response(response, model:, text:)
-          data = response.body
-          vectors = data['embedding']
-          vectors = vectors.is_a?(Array) ? vectors : [vectors]
-          input_tokens = data.dig('usage', 'prompt_tokens') || text.to_s.size
-          Embedding.new(vectors:, model: model.to_s, input_tokens:)
-        end
-      end
-
-      include Embeddings
-    end
-  end
-end
-
 module NemesisBrain
   REASONING_MODEL = ENV.fetch("NEMESIS_REASONING_MODEL", "gemma4:31b")
-  EMBED_MODEL = ENV.fetch("NEMESIS_EMBED_MODEL", "gemma4:31b")
+  EMBED_MODEL = ENV.fetch("NEMESIS_EMBED_MODEL", "nomic-embed-text")
   BINANCE_REST = ENV.fetch("BINANCE_REST", "https://fapi.binance.com")
   BINANCE_WS = ENV.fetch("BINANCE_WS", "wss://fstream.binance.com")
   DEFAULT_SYMBOL = ENV.fetch("NEMESIS_SYMBOL", "btcusdt")
   DEFAULT_EQUITY = ENV.fetch("NEMESIS_EQUITY", "10000").to_f
   PAPER_MODE = ENV.fetch("NEMESIS_PAPER_MODE", "false") == "true"
-  LLM_ENABLED = ENV.fetch("NEMESIS_LLM_ENABLED", "false") == "true" && ENV["OLLAMA_API_KEY"].to_s.strip != ""
+  LLM_ENABLED = ENV.fetch("NEMESIS_LLM_ENABLED", "false") == "true"
   QDRANT_ENABLED = ENV["QDRANT_URL"].to_s.strip != ""
   VERBOSE_LOGS = ENV["VERBOSE_LOGS"] == "true"
 
@@ -68,6 +35,25 @@ module NemesisBrain
       "#{COLORS[color]}#{text}#{RESET}"
     rescue StandardError
       text
+    end
+  end
+
+  class << self
+    # Builds an Ollama::Config from the environment. Defaults to a local
+    # Ollama instance; set OLLAMA_BASE_URL/OLLAMA_API_KEY(S) for Ollama Cloud.
+    # API keys are picked up automatically by Ollama::Config from
+    # OLLAMA_API_KEYS / OLLAMA_API_KEY, so only base_url and model need setting here.
+    def ollama_config
+      config = Ollama::Config.new
+      config.base_url = ENV.fetch("OLLAMA_BASE_URL", ENV.fetch("OLLAMA_URL", config.base_url))
+      config.model = REASONING_MODEL
+      config
+    end
+
+    # Shared Ollama client, used as the default `ollama:` dependency for lobes
+    # that reason with the LLM. Lobes still accept their own client for testing.
+    def ollama_client
+      @ollama_client ||= Ollama::Client.new(config: ollama_config)
     end
   end
 end

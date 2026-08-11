@@ -56,5 +56,28 @@ RSpec.describe Amygdala do
 
       expect(amygdala.desk_open).to be(false)
     end
+
+    it "sizes risk down after a run of same-side losses recorded in memory" do
+      hippocampus = Hippocampus.new
+      3.times do
+        hippocampus.store_episode(
+          symbol: "BTCUSDT", side: "long", entry_price: 50_000, exit_price: 49_500,
+          pnl_r: -1.0, thesis: "Absorption long", context: "High delta, price pinned"
+        )
+      end
+      amygdala = described_class.new(nervous_system:, equity: 10_000, hippocampus:)
+
+      amygdala.trade_plan_generated(
+        "symbol" => "BTCUSDT",
+        "side" => "LONG",
+        "entry_zone" => { "low" => 49_900, "high" => 50_000 },
+        "invalidation_price" => 49_600,
+        "targets" => [50_800, 51_200],
+        "setup_grade" => "A"
+      )
+
+      expect(approved_orders.length).to eq(1)
+      expect(approved_orders.first[:risk_pct]).to be < 1.0
+    end
   end
 end
