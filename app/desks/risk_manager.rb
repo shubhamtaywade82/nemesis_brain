@@ -103,6 +103,6 @@ class RiskManager
   end
 
   def log(message)
-    puts(Nemesis::Log.colorize("[#{Time.now.strftime('%H:%M:%S')}] #{message}", :red))
+    puts(QuantDesk::Log.colorize("[#{Time.now.strftime('%H:%M:%S')}] #{message}", :red))
   end
 end

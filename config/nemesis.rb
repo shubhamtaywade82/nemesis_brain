@@ -1,20 +1,20 @@
 # frozen_string_literal: true
 
-require "dotenv/load" if ENV["NEMESIS_SKIP_DOTENV"] != "true"
+require "dotenv/load" if ENV["QUANT_SKIP_DOTENV"] != "true"
 require "ollama_client"
 require "oj"
 
 Oj.default_options = { mode: :compat }
 
-module Nemesis
-  REASONING_MODEL = ENV.fetch("NEMESIS_REASONING_MODEL", "gemma4:31b")
-  EMBED_MODEL = ENV.fetch("NEMESIS_EMBED_MODEL", "nomic-embed-text")
+module QuantDesk
+  REASONING_MODEL = ENV.fetch("QUANT_REASONING_MODEL", "gemma4:31b")
+  EMBED_MODEL = ENV.fetch("QUANT_EMBED_MODEL", "nomic-embed-text")
   BINANCE_REST = ENV.fetch("BINANCE_REST", "https://fapi.binance.com")
   BINANCE_WS = ENV.fetch("BINANCE_WS", "wss://fstream.binance.com")
-  DEFAULT_SYMBOL = ENV.fetch("NEMESIS_SYMBOL", "btcusdt")
-  DEFAULT_EQUITY = ENV.fetch("NEMESIS_EQUITY", "10000").to_f
-  PAPER_MODE = ENV.fetch("NEMESIS_PAPER_MODE", "false") == "true"
-  LLM_ENABLED = ENV.fetch("NEMESIS_LLM_ENABLED", "false") == "true"
+  DEFAULT_SYMBOL = ENV.fetch("QUANT_SYMBOL", "btcusdt")
+  DEFAULT_EQUITY = ENV.fetch("QUANT_EQUITY", "10000").to_f
+  PAPER_MODE = ENV.fetch("QUANT_PAPER_MODE", "false") == "true"
+  LLM_ENABLED = ENV.fetch("QUANT_LLM_ENABLED", "false") == "true"
   QDRANT_ENABLED = ENV["QDRANT_URL"].to_s.strip != ""
   VERBOSE_LOGS = ENV["VERBOSE_LOGS"] == "true"
 

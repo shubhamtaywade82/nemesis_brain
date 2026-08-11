@@ -1,13 +1,59 @@
-# Dependencies
-.bundle/
+```
+# Environment files
+.env
+.env.local
+*.env.*
 
-# Environment
-.env*
-
-# Logs and temp files
+# Logs
 *.log
-*.tmp
 
-# System files
+# Temporary files
+*.tmp
+*.swp
+
+# Dependencies
+node_modules/
+vendor/bundle/
+
+# Build artifacts
+dist/
+build/
+*.o
+*.obj
+
+# Cache directories
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Editor/IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Coverage reports
+coverage/
+htmlcov/
+.coverage
+
+# OS generated files
 .DS_Store
 Thumbs.db
+
+# Ruby specific
+.bundle/
+*.gem
+*.rbc
+coverage/
+InstalledFiles
+pkg/
+spec/reports/
+test/tmp/
+test/version_tmp/
+tmp/
+
+# Backup files
+*~
+```

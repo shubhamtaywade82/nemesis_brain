@@ -39,6 +39,6 @@ class ExecutionTrader
   private
 
   def log(message)
-    puts(Nemesis::Log.colorize("[#{Time.now.strftime('%H:%M:%S')}] #{message}", :green))
+    puts(QuantDesk::Log.colorize("[#{Time.now.strftime('%H:%M:%S')}] #{message}", :green))
   end
 end

@@ -38,7 +38,7 @@ RSpec.describe PortfolioManager do
     end
 
     it "broadcasts a grade-A plan produced through the injected Ollama client" do
-      stub_const("Nemesis::LLM_ENABLED", true)
+      stub_const("QuantDesk::LLM_ENABLED", true)
       plan = {
         "thesis" => "Absorption long", "symbol" => "BTCUSDT", "side" => "LONG",
         "entry_zone" => { "low" => 49_900, "high" => 50_000 },
@@ -52,12 +52,12 @@ RSpec.describe PortfolioManager do
 
       expect(generated_plans).to eq([plan])
       expect(ollama).to have_received(:generate).with(
-        hash_including(schema: PortfolioManager::TRADE_PLAN_SCHEMA, model: Nemesis::REASONING_MODEL)
+        hash_including(schema: PortfolioManager::TRADE_PLAN_SCHEMA, model: QuantDesk::REASONING_MODEL)
       )
     end
 
     it "does not broadcast plans graded below A" do
-      stub_const("Nemesis::LLM_ENABLED", true)
+      stub_const("QuantDesk::LLM_ENABLED", true)
       plan = {
         "thesis" => "Weak setup", "symbol" => "BTCUSDT", "side" => "LONG",
         "entry_zone" => { "low" => 49_900, "high" => 50_000 },
@@ -73,7 +73,7 @@ RSpec.describe PortfolioManager do
     end
 
     it "recovers when the Ollama client raises" do
-      stub_const("Nemesis::LLM_ENABLED", true)
+      stub_const("QuantDesk::LLM_ENABLED", true)
       ollama = instance_double(Ollama::Client)
       allow(ollama).to receive(:generate).and_raise(Ollama::TimeoutError, "timed out")
       manager = described_class.new(event_bus:, journal:, ollama:)

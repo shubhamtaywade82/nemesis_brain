@@ -14,16 +14,16 @@ class TapeReader
     @prices = []
     @ob_bids = Numo::DFloat.zeros(20)
     @ob_asks = Numo::DFloat.zeros(20)
-    @symbol = Nemesis::DEFAULT_SYMBOL
+    @symbol = QuantDesk::DEFAULT_SYMBOL
   end
 
-  def start(symbol: Nemesis::DEFAULT_SYMBOL)
+  def start(symbol: QuantDesk::DEFAULT_SYMBOL)
     @symbol = symbol
     Thread.new { stream_binance(symbol) }
   end
 
   def log(message)
-    puts(Nemesis::Log.colorize("[#{Time.now.strftime('%H:%M:%S')}] #{message}", :yellow))
+    puts(QuantDesk::Log.colorize("[#{Time.now.strftime('%H:%M:%S')}] #{message}", :yellow))
   end
 
   def stream_binance(symbol)
@@ -34,7 +34,7 @@ class TapeReader
       "#{symbol}@depth20",
       "#{symbol}@forceOrder"
     ]
-    url = "#{Nemesis::BINANCE_WS}/stream?streams=#{streams.join('/')}"
+    url = "#{QuantDesk::BINANCE_WS}/stream?streams=#{streams.join('/')}"
 
     ws = WebSocket::Client::Simple.connect(url)
     ctx = self
@@ -42,13 +42,13 @@ class TapeReader
     ws.on :message do |event|
       ctx.route_event(Oj.load(event.data))
     rescue Oj::ParseError => e
-      ctx.log("WebSocket parse error: #{e.message}") if Nemesis::VERBOSE_LOGS
+      ctx.log("WebSocket parse error: #{e.message}") if QuantDesk::VERBOSE_LOGS
     rescue StandardError => e
-      ctx.log("WebSocket message handler error: #{e.class}: #{e.message}") if Nemesis::VERBOSE_LOGS
+      ctx.log("WebSocket message handler error: #{e.class}: #{e.message}") if QuantDesk::VERBOSE_LOGS
     end
     ws.on :error do |event|
-      if Nemesis::VERBOSE_LOGS
-        puts(Nemesis::Log.colorize("WebSocket error: #{event.inspect}", :red))
+      if QuantDesk::VERBOSE_LOGS
+        puts(QuantDesk::Log.colorize("WebSocket error: #{event.inspect}", :red))
         if event.respond_to?(:backtrace)
           puts event.backtrace.first(10).join("\n")
         end
@@ -57,7 +57,7 @@ class TapeReader
     ws.on :close do |event|
       code = event.respond_to?(:code) ? event.code : "unknown"
       reason = event.respond_to?(:reason) ? event.reason : ""
-      ctx.log("WebSocket closed: #{code} #{reason}") if Nemesis::VERBOSE_LOGS
+      ctx.log("WebSocket closed: #{code} #{reason}") if QuantDesk::VERBOSE_LOGS
       sleep 5
       stream_binance(symbol)
     end
@@ -133,7 +133,7 @@ class TapeReader
     direction = (order["S"] == "BUY") ? "LONG" : "SHORT"
     usd_value = order["q"].to_f * order["ap"].to_f
 
-    log("Liquidation: #{direction} #{symbol} $#{usd_value.round(2)}") if Nemesis::VERBOSE_LOGS
+    log("Liquidation: #{direction} #{symbol} $#{usd_value.round(2)}") if QuantDesk::VERBOSE_LOGS
 
     @events.broadcast(:liquidation_detected, { side: direction, usd_value: })
   end

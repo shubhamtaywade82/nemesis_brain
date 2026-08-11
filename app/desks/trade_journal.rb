@@ -6,7 +6,7 @@ class TradeJournal
   COLLECTION = "nemesis_trades"
   VECTOR_DIM = 768
 
-  def initialize(ollama: Nemesis.ollama_client)
+  def initialize(ollama: QuantDesk.ollama_client)
     @ollama = ollama
     @trade_log = []
     @qdrant = build_qdrant_client
@@ -93,16 +93,16 @@ class TradeJournal
   end
 
   def build_qdrant_client
-    return nil unless Nemesis::QDRANT_ENABLED
+    return nil unless QuantDesk::QDRANT_ENABLED
 
     require "qdrant"
     Qdrant::Client.new(url: ENV["QDRANT_URL"], api_key: ENV["QDRANT_API_KEY"])
   end
 
   def embed(text)
-    return pseudo_vector(text) unless Nemesis::LLM_ENABLED
+    return pseudo_vector(text) unless QuantDesk::LLM_ENABLED
 
-    @ollama.embeddings.embed(model: Nemesis::EMBED_MODEL, input: text)
+    @ollama.embeddings.embed(model: QuantDesk::EMBED_MODEL, input: text)
   rescue Ollama::Error => e
     warn "[TradeJournal] Embedding failed (#{e.message}). Using pseudo-vector."
     pseudo_vector(text)
