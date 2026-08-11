@@ -46,14 +46,14 @@ OLLAMA_BASE_URL=http://localhost:11434
 OLLAMA_API_KEY=
 
 # Model Selection
-NEMESIS_REASONING_MODEL=gemma4:31b
-NEMESIS_EMBED_MODEL=nomic-embed-text
+QUANTDESK_REASONING_MODEL=gemma4:31b
+QUANTDESK_EMBED_MODEL=nomic-embed-text
 
 # Trading Configuration
-NEMESIS_SYMBOL=btcusdt
-NEMESIS_EQUITY=10000
-NEMESIS_PAPER_MODE=true
-NEMESIS_LLM_ENABLED=false
+QUANTDESK_SYMBOL=btcusdt
+QUANTDESK_EQUITY=10000
+QUANTDESK_PAPER_MODE=true
+QUANTDESK_LLM_ENABLED=false
 
 # Optional: Qdrant for persistent memory
 QDRANT_URL=http://localhost:6333
@@ -217,12 +217,12 @@ end
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `NEMESIS_REASONING_MODEL` | `gemma4:31b` | LLM model for trade planning |
-| `NEMESIS_EMBED_MODEL` | `gemma4:31b` | Model for memory embeddings |
-| `NEMESIS_SYMBOL` | `btcusdt` | Trading pair |
-| `NEMESIS_EQUITY` | `10000` | Account size in USD |
-| `NEMESIS_PAPER_MODE` | `false` | Disable live execution |
-| `NEMESIS_LLM_ENABLED` | `false` | Enable/disable LLM calls |
+| `QUANTDESK_REASONING_MODEL` | `gemma4:31b` | LLM model for trade planning |
+| `QUANTDESK_EMBED_MODEL` | `nomic-embed-text` | Model for memory embeddings |
+| `QUANTDESK_SYMBOL` | `btcusdt` | Trading pair |
+| `QUANTDESK_EQUITY` | `10000` | Account size in USD |
+| `QUANTDESK_PAPER_MODE` | `false` | Disable live execution |
+| `QUANTDESK_LLM_ENABLED` | `false` | Enable/disable LLM calls |
 | `VERBOSE_LOGS` | `false` | Detailed logging output |
 
 ## 📈 Performance Considerations
