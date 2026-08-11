@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-ENV["QUANT_SKIP_DOTENV"] = "true"
-ENV["QUANT_PAPER_MODE"] = "true"
+ENV["QUANTDESK_SKIP_DOTENV"] = "true"
+ENV["QUANTDESK_PAPER_MODE"] = "true"
 
 require_relative "../lib/nemesis"
 
