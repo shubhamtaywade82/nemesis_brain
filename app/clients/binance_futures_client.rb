@@ -8,6 +8,7 @@ require "securerandom"
 
 class BinanceFuturesClient
   class TradeDisabledError < StandardError; end
+
   def initialize(api_key:, secret_key:, base_url: QuantDesk::BINANCE_REST, recv_window: 5000)
     @api_key = api_key
     @secret = secret_key
@@ -41,6 +42,9 @@ class BinanceFuturesClient
     { "symbol" => symbol, "openInterest" => "0" }
   end
 
+  # These three keep the keyword signature a real order-placement call would need,
+  # even though every one of them raises before touching the arguments.
+  # rubocop:disable Lint/UnusedMethodArgument
   def set_leverage(symbol:, leverage:)
     raise TradeDisabledError, "Order placement is disabled in analysis-only mode"
   end
@@ -52,6 +56,7 @@ class BinanceFuturesClient
   def place_stop_order(symbol:, side:, quantity:, stop_price:)
     raise TradeDisabledError, "Order placement is disabled in analysis-only mode"
   end
+  # rubocop:enable Lint/UnusedMethodArgument
 
   def dry_run_order(symbol:, side:, size_usd:, price:)
     quantity = (size_usd / price).round(3)
@@ -85,8 +90,8 @@ class BinanceFuturesClient
     @api_key && !@api_key.empty? && @api_key != "paper"
   end
 
-  def paper_order(symbol:, side:, size_usd: nil, price: nil, quantity: nil, stop_price: nil, type:)
-    qty = quantity || (size_usd.to_f / price.to_f).round(3)
+  def paper_order(symbol:, side:, type:, size_usd: nil, price: nil, quantity: nil, stop_price: nil)
+    qty = quantity || (size_usd.to_f / price).round(3)
     {
       "symbol" => symbol,
       "side" => side.upcase,

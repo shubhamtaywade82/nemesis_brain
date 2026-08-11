@@ -12,7 +12,11 @@ Instructions for any coding agent (Claude, Qwen, Codex, etc.) working in this re
   for the full list. If you add a new config constant, keep the prefix consistent across
   `config/nemesis.rb`, `.env.example`, and `README.md` in the same change; a mismatched
   prefix silently falls back to the default instead of erroring, so it's easy to miss.
-- Tests: `spec/`, run with `bundle exec rspec`. No linter is configured yet.
+- Tests: `spec/`, run with `bundle exec rspec`. Lint: `bundle exec rubocop` (config in
+  `.rubocop.yml`; keep it clean rather than growing a `.rubocop_todo.yml` — there isn't
+  one right now on purpose). CI (`.github/workflows/ci.yml`) runs both, plus a boot smoke
+  test, on every push/PR to `main`; `.github/workflows/security.yml` runs `bundler-audit`
+  and CodeQL.
 - **Safety invariant**: `ExecutionTrader`/`BinanceFuturesClient` never place real orders —
   order placement methods raise `TradeDisabledError` unconditionally. Do not wire up live
   execution without the user explicitly asking for it.
@@ -24,6 +28,10 @@ Instructions for any coding agent (Claude, Qwen, Codex, etc.) working in this re
 - After editing, run the relevant checks:
   - `bundle exec rspec` (full suite, or `bundle exec rspec spec/<file>_spec.rb` for a
     targeted run)
+  - `bundle exec rubocop` (or `bundle exec rubocop <path>` for just the files you touched).
+    CI fails on any offense — fix it or, if a threshold in `.rubocop.yml` is genuinely too
+    strict for a specific case, adjust that cop's config there rather than adding an inline
+    disable comment as a first resort.
   - `timeout 10 ruby boot_nemesis.rb` as a smoke test when boot wiring (`lib/nemesis.rb`,
     `app/desks/*`, `config/nemesis.rb`) changes. The process runs forever until interrupted,
     so always wrap it in `timeout` rather than running it directly — an unwrapped run blocks

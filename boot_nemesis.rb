@@ -4,11 +4,11 @@
 require_relative "lib/nemesis"
 
 puts "Booting QuantDesk..."
-puts "  Model : #{QuantDesk::REASONING_MODEL} (LLM #{QuantDesk::LLM_ENABLED ? 'enabled' : 'paper mode'})"
+puts "  Model : #{QuantDesk::REASONING_MODEL} (LLM #{QuantDesk::LLM_ENABLED ? "enabled" : "paper mode"})"
 puts "  Target: #{QuantDesk::BINANCE_REST}"
-puts "  Memory: #{QuantDesk::QDRANT_ENABLED ? 'Qdrant' : 'in-memory'}"
-puts "  Verbose logging: #{QuantDesk::VERBOSE_LOGS ? 'ON' : 'OFF'}"
-puts "  Paper Mode: #{QuantDesk::PAPER_MODE ? 'YES' : 'NO'}"
+puts "  Memory: #{QuantDesk::QDRANT_ENABLED ? "Qdrant" : "in-memory"}"
+puts "  Verbose logging: #{QuantDesk::VERBOSE_LOGS ? "ON" : "OFF"}"
+puts "  Paper Mode: #{QuantDesk::PAPER_MODE ? "YES" : "NO"}"
 puts ""
 
 begin
@@ -37,7 +37,7 @@ begin
   end
 
   sleep
-rescue => e
+rescue StandardError => e
   puts "❌ Boot failed: #{e.class}: #{e.message}"
   puts e.backtrace.first(10).join("\n") if QuantDesk::VERBOSE_LOGS
   exit 1

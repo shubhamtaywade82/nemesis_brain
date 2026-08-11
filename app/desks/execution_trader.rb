@@ -24,21 +24,24 @@ class ExecutionTrader
 
     log("Analysis: #{side} #{symbol} size=$#{total} leverage=#{leverage}x stop=#{stop_price} (no order sent)")
 
-    @events.broadcast(:order_analysis_logged, {
-      symbol:,
-      side:,
-      size_usd: total,
-      leverage:,
-      stop_price:,
-      entry_low:,
-      entry_high:,
-      status: "analyzed_only"
-    })
+    @events.broadcast(
+      :order_analysis_logged,
+      {
+        symbol:,
+        side:,
+        size_usd: total,
+        leverage:,
+        stop_price:,
+        entry_low:,
+        entry_high:,
+        status: "analyzed_only"
+      }
+    )
   end
 
   private
 
   def log(message)
-    puts(QuantDesk::Log.colorize("[#{Time.now.strftime('%H:%M:%S')}] #{message}", :green))
+    puts(QuantDesk::Log.colorize("[#{Time.now.strftime("%H:%M:%S")}] #{message}", :green))
   end
 end

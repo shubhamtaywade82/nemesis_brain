@@ -96,7 +96,7 @@ class TradeJournal
     return nil unless QuantDesk::QDRANT_ENABLED
 
     require "qdrant"
-    Qdrant::Client.new(url: ENV["QDRANT_URL"], api_key: ENV["QDRANT_API_KEY"])
+    Qdrant::Client.new(url: ENV.fetch("QDRANT_URL", nil), api_key: ENV.fetch("QDRANT_API_KEY", nil))
   end
 
   def embed(text)
@@ -122,9 +122,9 @@ class TradeJournal
       score_threshold: min_score
     )
 
-    (results.dig("result") || []).map do |hit|
+    (results["result"] || []).map do |hit|
       payload = hit["payload"]
-      "[Score:#{hit['score'].round(2)}] #{payload['text'].strip}"
+      "[Score:#{hit["score"].round(2)}] #{payload["text"].strip}"
     end
   end
 

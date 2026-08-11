@@ -26,22 +26,43 @@ class RiskManager
       return
     end
 
-    entry = plan["entry_zone"]["high"].to_f
-    stop = plan["invalidation_price"].to_f
-    target1 = plan["targets"][0].to_f
-
-    stop_distance = (entry - stop).abs / entry
-    reward_distance = (target1 - entry).abs / entry
-    rr_ratio = reward_distance / stop_distance
+    rr_ratio, stop_distance = risk_reward_for(plan)
 
     if rr_ratio < MIN_RR_RATIO
       log("RISK: R:R #{rr_ratio.round(2)} below #{MIN_RR_RATIO}. Rejected.")
       return
     end
 
+    approve_trade(plan, rr_ratio, stop_distance)
+  end
+
+  def trade_closed(event)
+    pnl_usd = event[:pnl_usd]
+    @session_pnl += pnl_usd
+    drawdown_pct = -@session_pnl / @equity
+
+    return unless drawdown_pct >= MAX_DAILY_DRAWDOWN
+
+    @desk_open = false
+    log("RISK: Daily drawdown #{(drawdown_pct * 100).round(2)}% breached. Desk closed.")
+    @events.broadcast(:desk_closed, { reason: "daily_drawdown_limit" })
+  end
+
+  private
+
+  def risk_reward_for(plan)
+    entry = plan["entry_zone"]["high"].to_f
+    stop = plan["invalidation_price"].to_f
+    target1 = plan["targets"][0].to_f
+
+    stop_distance = (entry - stop).abs / entry
+    reward_distance = (target1 - entry).abs / entry
+    [reward_distance / stop_distance, stop_distance]
+  end
+
+  def approve_trade(plan, rr_ratio, stop_distance)
     win_rate = fetch_win_rate(plan["side"])
-    kelly_fraction = (win_rate - ((1 - win_rate) / rr_ratio)) * 0.25
-    kelly_fraction = kelly_fraction.clamp(0.0, MAX_RISK_PER_TRADE)
+    kelly_fraction = kelly_fraction_for(win_rate, rr_ratio)
 
     risk_amount = @equity * kelly_fraction
     position_size = risk_amount / stop_distance
@@ -62,19 +83,10 @@ class RiskManager
     )
   end
 
-  def trade_closed(event)
-    pnl_usd = event[:pnl_usd]
-    @session_pnl += pnl_usd
-    drawdown_pct = -@session_pnl / @equity
-
-    return unless drawdown_pct >= MAX_DAILY_DRAWDOWN
-
-    @desk_open = false
-    log("RISK: Daily drawdown #{(drawdown_pct * 100).round(2)}% breached. Desk closed.")
-    @events.broadcast(:desk_closed, { reason: "daily_drawdown_limit" })
+  def kelly_fraction_for(win_rate, rr_ratio)
+    fraction = (win_rate - ((1 - win_rate) / rr_ratio)) * 0.25
+    fraction.clamp(0.0, MAX_RISK_PER_TRADE)
   end
-
-  private
 
   def fetch_win_rate(side)
     trades = @journal&.recent_trades(days: 7, limit: 200) || []
@@ -103,6 +115,6 @@ class RiskManager
   end
 
   def log(message)
-    puts(QuantDesk::Log.colorize("[#{Time.now.strftime('%H:%M:%S')}] #{message}", :red))
+    puts(QuantDesk::Log.colorize("[#{Time.now.strftime("%H:%M:%S")}] #{message}", :red))
   end
 end

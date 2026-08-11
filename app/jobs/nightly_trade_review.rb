@@ -28,8 +28,8 @@ class NightlyTradeReview
       review["new_rules"].each { |rule| file.puts("# #{Date.today}: #{rule}") }
     end
 
-    puts "Trade review complete: #{review['summary']}"
-    puts "New rules: #{review['new_rules'].join(' | ')}"
+    puts "Trade review complete: #{review["summary"]}"
+    puts "New rules: #{review["new_rules"].join(" | ")}"
   end
 
   private

@@ -23,22 +23,34 @@ class TapeReader
   end
 
   def log(message)
-    puts(QuantDesk::Log.colorize("[#{Time.now.strftime('%H:%M:%S')}] #{message}", :yellow))
+    puts(QuantDesk::Log.colorize("[#{Time.now.strftime("%H:%M:%S")}] #{message}", :yellow))
   end
 
   def stream_binance(symbol)
     require "websocket-client-simple"
 
+    ws = WebSocket::Client::Simple.connect(stream_url(symbol))
+
+    register_message_handler(ws)
+    register_error_handler(ws)
+    register_close_handler(ws, symbol)
+  rescue StandardError => e
+    log("WebSocket connection failed: #{e.class}: #{e.message}")
+    sleep 5
+    retry
+  end
+
+  def stream_url(symbol)
     streams = [
       "#{symbol}@aggTrade",
       "#{symbol}@depth20",
       "#{symbol}@forceOrder"
     ]
-    url = "#{QuantDesk::BINANCE_WS}/stream?streams=#{streams.join('/')}"
+    "#{QuantDesk::BINANCE_WS}/stream?streams=#{streams.join("/")}"
+  end
 
-    ws = WebSocket::Client::Simple.connect(url)
+  def register_message_handler(ws)
     ctx = self
-
     ws.on :message do |event|
       ctx.route_event(Oj.load(event.data))
     rescue Oj::ParseError => e
@@ -46,25 +58,26 @@ class TapeReader
     rescue StandardError => e
       ctx.log("WebSocket message handler error: #{e.class}: #{e.message}") if QuantDesk::VERBOSE_LOGS
     end
+  end
+
+  def register_error_handler(ws)
     ws.on :error do |event|
-      if QuantDesk::VERBOSE_LOGS
-        puts(QuantDesk::Log.colorize("WebSocket error: #{event.inspect}", :red))
-        if event.respond_to?(:backtrace)
-          puts event.backtrace.first(10).join("\n")
-        end
-      end
+      next unless QuantDesk::VERBOSE_LOGS
+
+      puts(QuantDesk::Log.colorize("WebSocket error: #{event.inspect}", :red))
+      puts event.backtrace.first(10).join("\n") if event.respond_to?(:backtrace)
     end
+  end
+
+  def register_close_handler(ws, symbol)
+    ctx = self
     ws.on :close do |event|
       code = event.respond_to?(:code) ? event.code : "unknown"
       reason = event.respond_to?(:reason) ? event.reason : ""
       ctx.log("WebSocket closed: #{code} #{reason}") if QuantDesk::VERBOSE_LOGS
       sleep 5
-      stream_binance(symbol)
+      ctx.stream_binance(symbol)
     end
-  rescue StandardError => e
-    log("WebSocket connection failed: #{e.class}: #{e.message}")
-    sleep 5
-    retry
   end
 
   def route_event(payload)
@@ -122,7 +135,7 @@ class TapeReader
   def calculate_ob_imbalance
     bid_volume = @ob_bids.sum
     ask_volume = @ob_asks.sum
-    return 0.0 if bid_volume + ask_volume == 0
+    return 0.0 if (bid_volume + ask_volume).zero?
 
     (bid_volume - ask_volume) / (bid_volume + ask_volume)
   end
@@ -130,7 +143,7 @@ class TapeReader
   def process_liquidation(data)
     order = data["o"]
     symbol = order["s"]
-    direction = (order["S"] == "BUY") ? "LONG" : "SHORT"
+    direction = order["S"] == "BUY" ? "LONG" : "SHORT"
     usd_value = order["q"].to_f * order["ap"].to_f
 
     log("Liquidation: #{direction} #{symbol} $#{usd_value.round(2)}") if QuantDesk::VERBOSE_LOGS

@@ -28,13 +28,13 @@ RSpec.describe PortfolioManager do
     end
 
     it "skips plan generation without calling the LLM when disabled" do
-      ollama = instance_double(Ollama::Client)
-      expect(ollama).not_to receive(:generate)
+      ollama = instance_spy(Ollama::Client)
       manager = described_class.new(event_bus:, journal:, ollama:)
 
       manager.tape_signal_detected(signal)
 
       expect(generated_plans).to be_empty
+      expect(ollama).not_to have_received(:generate)
     end
 
     it "broadcasts a grade-A plan produced through the injected Ollama client" do

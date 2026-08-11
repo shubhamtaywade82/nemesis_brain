@@ -1,5 +1,8 @@
 # QuantDesk: Autonomous Trading Desk for Crypto Futures
 
+[![CI](https://github.com/shubhamtaywade82/nemesis_brain/actions/workflows/ci.yml/badge.svg)](https://github.com/shubhamtaywade82/nemesis_brain/actions/workflows/ci.yml)
+[![Security](https://github.com/shubhamtaywade82/nemesis_brain/actions/workflows/security.yml/badge.svg)](https://github.com/shubhamtaywade82/nemesis_brain/actions/workflows/security.yml)
+
 A professional-grade autonomous trading system built with Ruby and Ollama, organized as a set of specialized trading-desk roles that communicate over a shared event bus. QuantDesk makes disciplined, risk-aware trading decisions on cryptocurrency futures markets. LLM reasoning is powered by the [`ollama-client`](https://github.com/shubhamtaywade82/ollama-client) gem, which gives structured, schema-validated JSON output straight from `chat`/`generate` calls — no manual JSON parsing or repair logic required.
 
 ## 📊 Architecture Overview
@@ -150,7 +153,7 @@ Currently operates in **analysis-only mode**, logging intended orders without ex
 - Iceberg order splitting
 - Limit order placement at entry zones
 
-## 🧪 Testing
+## 🧪 Testing & CI
 
 ```bash
 # Run the test suite
@@ -161,6 +164,10 @@ bundle exec rspec spec/event_bus_spec.rb
 bundle exec rspec spec/risk_manager_spec.rb
 bundle exec rspec spec/trade_journal_spec.rb
 bundle exec rspec spec/portfolio_manager_spec.rb
+bundle exec rspec spec/binance_futures_client_spec.rb
+
+# Lint
+bundle exec rubocop
 ```
 
 Tests verify:
@@ -168,6 +175,17 @@ Tests verify:
 - Risk gating logic in the Risk Manager
 - Trade storage/recall in the Trade Journal
 - Ollama client wiring in the Portfolio Manager (via an injected fake client)
+- The `TradeDisabledError` safety invariant on `BinanceFuturesClient`
+
+Every push and pull request against `main` runs two GitHub Actions workflows:
+- **[CI](.github/workflows/ci.yml)** — `bundle exec rspec` on Ruby 3.1 and 3.3, `bundle exec
+  rubocop`, and a boot smoke test that boots QuantDesk in paper mode and confirms it stays
+  up instead of crashing.
+- **[Security](.github/workflows/security.yml)** — `bundler-audit` against the gem lockfile
+  and GitHub CodeQL static analysis for Ruby, both also on a weekly schedule so newly
+  disclosed CVEs get caught even without new commits.
+
+Dependabot (`.github/dependabot.yml`) opens weekly PRs for outdated gems and Actions.
 
 ## 🔒 Safety Features
 

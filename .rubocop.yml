@@ -1,0 +1,63 @@
+plugins:
+  - rubocop-performance
+  - rubocop-rspec
+
+AllCops:
+  NewCops: enable
+  TargetRubyVersion: 3.1
+  SuggestExtensions: false
+  Exclude:
+    - "bin/**/*"
+    - "docs/**/*"
+    - "vendor/**/*"
+
+# The codebase consistently uses double-quoted strings; match the existing
+# convention instead of forcing a repo-wide reformat to RuboCop's default.
+Style/StringLiterals:
+  EnforcedStyle: double_quotes
+
+Style/StringLiteralsInInterpolation:
+  EnforcedStyle: double_quotes
+
+Style/Documentation:
+  Enabled: false
+
+Style/FrozenStringLiteralComment:
+  EnforcedStyle: always
+
+Bundler/OrderedGems:
+  Enabled: false
+
+Metrics/MethodLength:
+  Max: 30
+
+Metrics/ParameterLists:
+  Max: 7
+
+Naming/MethodParameterName:
+  MinNameLength: 2
+
+Metrics/ClassLength:
+  Max: 200
+
+Metrics/AbcSize:
+  Max: 30
+
+Metrics/CyclomaticComplexity:
+  Max: 12
+
+Metrics/PerceivedComplexity:
+  Max: 12
+
+Metrics/BlockLength:
+  Exclude:
+    - "spec/**/*"
+
+RSpec/ExampleLength:
+  Max: 20
+
+RSpec/MultipleExpectations:
+  Max: 5
+
+RSpec/NestedGroups:
+  Max: 4

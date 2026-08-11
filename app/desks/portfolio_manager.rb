@@ -45,14 +45,18 @@ class PortfolioManager
   end
 
   def tape_signal_detected(signal)
-    log("Signal received: #{signal[:type]} #{signal[:direction]} @ #{signal[:price]} (#{signal[:context]})") if QuantDesk::VERBOSE_LOGS
+    if QuantDesk::VERBOSE_LOGS
+      log("Signal received: #{signal[:type]} #{signal[:direction]} @ #{signal[:price]} (#{signal[:context]})")
+    end
     direction = signal[:direction]
     price = signal[:price]
     context = signal[:context]
     symbol = signal[:symbol]
 
     similar_trades = @journal.similar_trades("#{direction} absorption #{context}")
-    log("Journal recall returned #{similar_trades.length} similar trades") if QuantDesk::VERBOSE_LOGS && similar_trades.any?
+    if QuantDesk::VERBOSE_LOGS && similar_trades.any?
+      log("Journal recall returned #{similar_trades.length} similar trades")
+    end
     atr_pct = fetch_atr_pct(symbol || "BTCUSDT")
     trade_plan = generate_trade_plan(
       symbol: symbol || "BTCUSDT",
@@ -65,10 +69,10 @@ class PortfolioManager
 
     if trade_plan
       if trade_plan["setup_grade"] == "A"
-        log("PM: Grade A plan for #{trade_plan['side']} #{symbol}")
+        log("PM: Grade A plan for #{trade_plan["side"]} #{symbol}")
         @events.broadcast(:trade_plan_generated, trade_plan)
       else
-        log("PM: Grade #{trade_plan['setup_grade']} — skipped")
+        log("PM: Grade #{trade_plan["setup_grade"]} — skipped")
       end
     else
       log("PM: No trade plan for #{symbol} #{direction.to_s.upcase}")
@@ -169,6 +173,6 @@ class PortfolioManager
   end
 
   def log(message)
-    puts(QuantDesk::Log.colorize("[#{Time.now.strftime('%H:%M:%S')}] #{message}", :cyan))
+    puts(QuantDesk::Log.colorize("[#{Time.now.strftime("%H:%M:%S")}] #{message}", :cyan))
   end
 end
