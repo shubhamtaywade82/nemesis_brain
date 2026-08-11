@@ -2,8 +2,8 @@
 
 require "securerandom"
 
-class Hippocampus
-  COLLECTION = "nemesis_episodes"
+class TradeMemory
+  COLLECTION = "trade_history"
   VECTOR_DIM = 768
 
   def initialize(ollama: NemesisBrain.ollama_client)
@@ -13,7 +13,7 @@ class Hippocampus
     ensure_collection_exists if @qdrant
   end
 
-  def store_episode(symbol:, side:, entry_price:, exit_price:, pnl_r:, thesis:, context:)
+  def record_trade(symbol:, side:, entry_price:, exit_price:, pnl_r:, thesis:, context:)
     outcome = pnl_r >= 0 ? "WIN (#{pnl_r.round(2)}R)" : "LOSS (#{pnl_r.round(2)}R)"
     text = <<~TEXT.strip
       Trade: #{symbol} #{side.upcase} at #{entry_price} -> #{exit_price}
@@ -104,7 +104,7 @@ class Hippocampus
 
     @ollama.embeddings.embed(model: NemesisBrain::EMBED_MODEL, input: text)
   rescue Ollama::Error => e
-    warn "[Hippocampus] Embedding failed (#{e.message}). Using pseudo-vector."
+    warn "[TradeMemory] Embedding failed (#{e.message}). Using pseudo-vector."
     pseudo_vector(text)
   end
 

@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-class PrefrontalCortex
+class StrategyEngine
   ATR_PERIOD = 14
   ATR_FALLBACK_PCT = 0.012
 
@@ -38,13 +38,13 @@ class PrefrontalCortex
 
   def initialize(nervous_system:, hippocampus:, binance: nil, ollama: NemesisBrain.ollama_client)
     @ns = nervous_system
-    @memory = hippocampus
+    @memory = trade_memory
     @binance = binance
     @ollama = ollama
     @ns.subscribe(self)
   end
 
-  def tape_signal_detected(signal)
+  def market_signal_detected(signal)
     log("Signal received: #{signal[:type]} #{signal[:direction]} @ #{signal[:price]} (#{signal[:context]})") if NemesisBrain::VERBOSE_LOGS
     direction = signal[:direction]
     price = signal[:price]
@@ -65,19 +65,19 @@ class PrefrontalCortex
 
     if trade_plan
       if trade_plan["setup_grade"] == "A"
-        log("PM: Grade A plan for #{trade_plan['side']} #{symbol}")
+        log("STRATEGY_ENGINE: Grade A plan for #{trade_plan['side']} #{symbol}")
         @ns.broadcast(:trade_plan_generated, trade_plan)
       else
-        log("PM: Grade #{trade_plan['setup_grade']} — skipped")
+        log("STRATEGY_ENGINE: Grade #{trade_plan['setup_grade']} — skipped")
       end
     else
-      log("PM: No trade plan for #{symbol} #{direction.to_s.upcase}")
+      log("STRATEGY_ENGINE: No trade plan for #{symbol} #{direction.to_s.upcase}")
     end
   end
 
-  def alpha_wave_pulse(snapshot)
+  def macro_review_pulse(snapshot)
     unless NemesisBrain::LLM_ENABLED
-      log("PM: LLM disabled, skipping macro bias pulse")
+      log("STRATEGY_ENGINE: LLM disabled, skipping macro bias pulse")
       return
     end
 
@@ -87,7 +87,7 @@ class PrefrontalCortex
     log("Macro bias result: #{Oj.dump(bias)}") if NemesisBrain::VERBOSE_LOGS
     @ns.broadcast(:macro_bias_updated, bias)
   rescue Ollama::Error => e
-    log("PM: Macro bias skip (#{e.message})")
+    log("STRATEGY_ENGINE: Macro bias skip (#{e.message})")
   end
 
   private

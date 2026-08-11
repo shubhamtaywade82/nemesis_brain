@@ -2,7 +2,7 @@
 
 require "wisper"
 
-class NervousSystem
+class SignalBus
   include Wisper::Publisher
 
   public :broadcast

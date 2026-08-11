@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-class NightlyPostMortem
+class TradeReviewJob
   REVIEW_SCHEMA = {
     "type" => "object",
     "required" => %w[biases new_rules summary],
@@ -19,7 +19,7 @@ class NightlyPostMortem
 
   def run
     losses = @memory.recent_losses(days: 1)
-    return puts("Post-mortem: No losses today.") if losses.empty?
+    return puts("Trade Review: No losses today.") if losses.empty?
 
     journal = losses.map { |point| payload_of(point)["text"] }.join("\n\n")
     review = NemesisBrain::LLM_ENABLED ? run_llm_review(journal) : paper_review
@@ -28,7 +28,7 @@ class NightlyPostMortem
       review["new_rules"].each { |rule| file.puts("# #{Date.today}: #{rule}") }
     end
 
-    puts "Post-mortem complete: #{review['summary']}"
+    puts "Trade Review complete: #{review['summary']}"
     puts "New rules: #{review['new_rules'].join(' | ')}"
   end
 
@@ -52,7 +52,7 @@ class NightlyPostMortem
 
     @ollama.generate(prompt:, schema: REVIEW_SCHEMA, model: NemesisBrain::REASONING_MODEL)
   rescue Ollama::Error => e
-    warn "[NightlyPostMortem] LLM review failed (#{e.message}). Falling back to paper review."
+    warn "[TradeReviewJob] LLM review failed (#{e.message}). Falling back to paper review."
     paper_review
   end
 

@@ -2,7 +2,7 @@
 
 require "descriptive_statistics/safe"
 
-class Amygdala
+class RiskManager
   MAX_RISK_PER_TRADE = 0.01
   MAX_DAILY_DRAWDOWN = 0.03
   MAX_LEVERAGE = 20
@@ -12,17 +12,17 @@ class Amygdala
   attr_reader :desk_open, :session_pnl
 
   def initialize(nervous_system:, equity:, hippocampus: nil)
-    @ns = nervous_system
+    @sb = signal_bus
     @equity = equity
-    @memory = hippocampus
+    @memory = trade_memory
     @session_pnl = 0.0
     @desk_open = true
-    @ns.subscribe(self)
+    @sb.subscribe(self)
   end
 
   def trade_plan_generated(plan)
     unless @desk_open
-      log("AMYGDALA: Desk closed. Rejecting trade plan.")
+      log("RISK_MANAGER: Desk closed. Rejecting trade plan.")
       return
     end
 
@@ -35,7 +35,7 @@ class Amygdala
     rr_ratio = reward_distance / stop_distance
 
     if rr_ratio < MIN_RR_RATIO
-      log("AMYGDALA: R:R #{rr_ratio.round(2)} below #{MIN_RR_RATIO}. Rejected.")
+      log("RISK_MANAGER: R:R #{rr_ratio.round(2)} below #{MIN_RR_RATIO}. Rejected.")
       return
     end
 
@@ -48,9 +48,9 @@ class Amygdala
     adjusted_size = position_size * (1.0 - correlation_penalty(plan["side"]))
     leverage = (adjusted_size / @equity).ceil.clamp(1, MAX_LEVERAGE)
 
-    log("AMYGDALA: APPROVED size=$#{adjusted_size.round(2)} leverage=#{leverage}x R:R=#{rr_ratio.round(2)}")
+    log("RISK_MANAGER: APPROVED size=$#{adjusted_size.round(2)} leverage=#{leverage}x R:R=#{rr_ratio.round(2)}")
 
-    @ns.broadcast(
+    @sb.broadcast(
       :approved_order,
       {
         plan:,
@@ -70,8 +70,8 @@ class Amygdala
     return unless drawdown_pct >= MAX_DAILY_DRAWDOWN
 
     @desk_open = false
-    log("AMYGDALA: Daily drawdown #{(drawdown_pct * 100).round(2)}% breached. Desk closed.")
-    @ns.broadcast(:desk_closed, { reason: "daily_drawdown_limit" })
+    log("RISK_MANAGER: Daily drawdown #{(drawdown_pct * 100).round(2)}% breached. Desk closed.")
+    @sb.broadcast(:desk_closed, { reason: "daily_drawdown_limit" })
   end
 
   private

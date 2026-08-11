@@ -6,14 +6,14 @@ require_relative "../config/nemesis"
 ROOT = File.expand_path("..", __dir__)
 
 %w[
-  app/nervous_system
+  app/signal_bus
   app/clients/binance_futures_client
-  app/lobes/hippocampus
-  app/lobes/sensory_cortex
-  app/lobes/prefrontal_cortex
-  app/lobes/amygdala
-  app/lobes/motor_cortex
-  app/jobs/nightly_post_mortem
+  app/modules/trade_memory
+  app/modules/market_scanner
+  app/modules/strategy_engine
+  app/modules/risk_manager
+  app/modules/order_executor
+  app/jobs/trade_review_job
 ].each do |path|
   require_relative "../#{path}"
 end
@@ -21,23 +21,23 @@ end
 module NemesisBrain
   class << self
     def boot(symbol: DEFAULT_SYMBOL, equity: DEFAULT_EQUITY)
-      nervous_system = NervousSystem.new
+      signal_bus = SignalBus.new
       binance = build_binance_client
-      hippocampus = Hippocampus.new
-      sensory = SensoryCortex.new(nervous_system)
-      PrefrontalCortex.new(nervous_system:, hippocampus:, binance:)
-      Amygdala.new(nervous_system:, equity:, hippocampus:)
-      MotorCortex.new(nervous_system:, binance:)
+      trade_memory = TradeMemory.new
+      market_scanner = MarketScanner.new(signal_bus)
+      StrategyEngine.new(signal_bus:, trade_memory:, binance:)
+      RiskManager.new(signal_bus:, equity:, trade_memory:)
+      OrderExecutor.new(signal_bus:, binance:)
 
       alpha_wave = Concurrent::TimerTask.new(execution_interval: 60) do
-        pulse_alpha_wave(nervous_system, binance)
+        pulse_alpha_wave(signal_bus, binance)
       end
 
       {
-        nervous_system:,
+        signal_bus:,
         binance:,
-        hippocampus:,
-        sensory:,
+        trade_memory:,
+        market_scanner:,
         alpha_wave:,
         symbol:
       }
@@ -53,10 +53,10 @@ module NemesisBrain
       )
     end
 
-    def pulse_alpha_wave(nervous_system, binance)
+    def pulse_alpha_wave(signal_bus, binance)
       funding = binance.get_funding_rate("BTCUSDT")
       open_interest = binance.get_open_interest("BTCUSDT")
-      nervous_system.broadcast(:alpha_wave_pulse, { funding_rates: funding, open_interest: })
+      signal_bus.broadcast(:macro_review_pulse, { funding_rates: funding, open_interest: })
     rescue StandardError => e
       warn "[AlphaWave] #{e.message}"
     end

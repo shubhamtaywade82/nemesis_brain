@@ -20,8 +20,8 @@ begin
   components[:alpha_wave].execute
   puts "✓ Alpha Wave Loop started (60s interval)"
 
-  components[:sensory].start(symbol: components[:symbol])
-  puts "✓ SensoryCortex online — streaming #{components[:symbol].upcase} tape"
+  components[:market_scanner].start(symbol: components[:symbol])
+  puts "✓ MarketScanner online — streaming #{components[:symbol].upcase} tape"
   puts ""
   puts "🧠 Nemesis is awake and monitoring the market."
   puts "   Press Ctrl+C to shut down."

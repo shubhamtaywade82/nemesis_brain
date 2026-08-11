@@ -2,7 +2,7 @@
 
 require "async"
 
-class MotorCortex
+class OrderExecutor
   TRANCHE_COUNT = 4
   TRANCHE_DELAY = 15
 
@@ -12,7 +12,7 @@ class MotorCortex
     @ns.subscribe(self)
   end
 
-  def approved_order(order_data)
+  def approved_trade_order(order_data)
     plan = order_data[:plan]
     symbol = plan["symbol"] || "BTCUSDT"
     side = plan["side"]

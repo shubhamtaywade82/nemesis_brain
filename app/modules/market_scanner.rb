@@ -3,7 +3,7 @@
 require "async"
 require "numo/narray"
 
-class SensoryCortex
+class MarketScanner
   CVD_WINDOW_SIZE = 200
   ABSORPTION_NOTIONAL_THRESHOLD = 1_000_000 # USD delta absorbed without a matching price move
   ABSORPTION_PRICE_THRESHOLD = 0.05
@@ -75,13 +75,13 @@ class SensoryCortex
     return unless stream && data
 
     case stream
-    when /aggTrade/ then process_tape(data)
-    when /depth/ then update_orderbook(data)
-    when /forceOrder/ then process_liquidation(data)
+    when /aggTrade/ then process_trade_stream(data)
+    when /depth/ then update_order_book(data)
+    when /forceOrder/ then process_liquidation_event(data)
     end
   end
 
-  def process_tape(trade)
+  def process_trade_stream(trade)
     quantity = trade["q"].to_f
     price = trade["p"].to_f
     side = trade["m"] ? :sell : :buy
@@ -92,10 +92,10 @@ class SensoryCortex
     @prices << price
     @prices.shift if @prices.size > CVD_WINDOW_SIZE
 
-    detect_absorption
+    detect_order_flow_imbalance
   end
 
-  def detect_absorption
+  def detect_order_flow_imbalance
     return if @prices.size < 10
 
     cumulative_delta = @cvd.last(20).sum
@@ -127,7 +127,7 @@ class SensoryCortex
     (bid_volume - ask_volume) / (bid_volume + ask_volume)
   end
 
-  def process_liquidation(data)
+  def process_liquidation_event(data)
     order = data["o"]
     symbol = order["s"]
     direction = (order["S"] == "BUY") ? "LONG" : "SHORT"
@@ -138,7 +138,7 @@ class SensoryCortex
     @ns.broadcast(:liquidation_detected, { side: direction, usd_value: })
   end
 
-  def update_orderbook(data)
+  def update_order_book(data)
     bids = data["b"].first(20).map { |level| level[1].to_f }
     asks = data["a"].first(20).map { |level| level[1].to_f }
     @ob_bids = Numo::DFloat.cast(bids)
