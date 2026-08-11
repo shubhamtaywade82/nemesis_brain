@@ -1,32 +1,46 @@
 # frozen_string_literal: true
 
 class PrefrontalCortex
+  ATR_PERIOD = 14
+  ATR_FALLBACK_PCT = 0.012
+
   TRADE_PLAN_SCHEMA = {
-    type: "object",
-    properties: {
-      thesis: { type: "string" },
-      symbol: { type: "string" },
-      side: { type: "string", enum: %w[LONG SHORT] },
-      entry_zone: {
-        type: "object",
-        properties: {
-          low: { type: "number" },
-          high: { type: "number" }
-        },
-        required: %w[low high]
+    "type" => "object",
+    "required" => %w[thesis symbol side entry_zone invalidation_price targets setup_grade confidence],
+    "properties" => {
+      "thesis" => { "type" => "string" },
+      "symbol" => { "type" => "string" },
+      "side" => { "type" => "string", "enum" => %w[LONG SHORT] },
+      "entry_zone" => {
+        "type" => "object",
+        "required" => %w[low high],
+        "properties" => {
+          "low" => { "type" => "number" },
+          "high" => { "type" => "number" }
+        }
       },
-      invalidation_price: { type: "number" },
-      targets: { type: "array", items: { type: "number" } },
-      setup_grade: { type: "string", enum: %w[A B C] },
-      confidence: { type: "number" }
-    },
-    required: %w[thesis symbol side entry_zone invalidation_price targets setup_grade confidence]
+      "invalidation_price" => { "type" => "number" },
+      "targets" => { "type" => "array", "items" => { "type" => "number" } },
+      "setup_grade" => { "type" => "string", "enum" => %w[A B C] },
+      "confidence" => { "type" => "number" }
+    }
   }.freeze
 
-  def initialize(nervous_system:, hippocampus:, binance: nil)
+  MACRO_BIAS_SCHEMA = {
+    "type" => "object",
+    "required" => %w[bias confidence notes],
+    "properties" => {
+      "bias" => { "type" => "string", "enum" => %w[LONG SHORT NEUTRAL] },
+      "confidence" => { "type" => "number" },
+      "notes" => { "type" => "string" }
+    }
+  }.freeze
+
+  def initialize(nervous_system:, hippocampus:, binance: nil, ollama: NemesisBrain.ollama_client)
     @ns = nervous_system
     @memory = hippocampus
     @binance = binance
+    @ollama = ollama
     @ns.subscribe(self)
   end
 
@@ -67,22 +81,12 @@ class PrefrontalCortex
       return
     end
 
-    funding_rates = snapshot[:funding_rates]
-    open_interest = snapshot[:open_interest]
-    prompt = <<~PROMPT
-      Macro environment review.
-      Funding rates: #{Oj.dump(funding_rates)}
-      Open interest trend: #{Oj.dump(open_interest)}
-      What is the dominant market bias right now?
-      JSON: { "bias": "LONG|SHORT|NEUTRAL", "confidence": float, "notes": "string" }
-    PROMPT
-
+    prompt = macro_bias_prompt(snapshot)
     log("Macro bias prompt sent to LLM") if NemesisBrain::VERBOSE_LOGS
-    bias = Oj.load(clean_llm_json(ask_llm(prompt)))
+    bias = ask_llm(prompt, MACRO_BIAS_SCHEMA)
     log("Macro bias result: #{Oj.dump(bias)}") if NemesisBrain::VERBOSE_LOGS
-    $stdout.flush if NemesisBrain::VERBOSE_LOGS
     @ns.broadcast(:macro_bias_updated, bias)
-  rescue StandardError => e
+  rescue Ollama::Error => e
     log("PM: Macro bias skip (#{e.message})")
   end
 
@@ -94,70 +98,77 @@ class PrefrontalCortex
       return nil
     end
 
-    memory_text = if memories.any?
-                    "Past similar episodes:\n#{memories.join("\n")}"
-                  else
-                    "No relevant past episodes found."
-                  end
+    prompt = trade_plan_prompt(symbol:, direction:, price:, atr_pct:, context:, memories:)
 
-    prompt = <<~PROMPT
+    log("Prompting LLM for #{symbol} #{direction.to_s.upcase} plan") if NemesisBrain::VERBOSE_LOGS
+    plan = ask_llm(prompt, TRADE_PLAN_SCHEMA)
+    log("Trade plan result: #{Oj.dump(plan)}") if NemesisBrain::VERBOSE_LOGS
+    plan
+  rescue Ollama::Error => e
+    log("Trade plan generation failed: #{e.message}")
+    nil
+  end
+
+  def trade_plan_prompt(symbol:, direction:, price:, atr_pct:, context:, memories:)
+    <<~PROMPT
       You are the Portfolio Manager of a crypto prop desk.
       Signal: #{direction.to_s.upcase} absorption at #{price}.
       Symbol: #{symbol}
       Context: #{context}
       Current ATR: #{(atr_pct * 100).round(2)}%
-      #{memory_text}
+      #{memory_summary(memories)}
 
       Respond ONLY as JSON matching this schema:
       #{Oj.dump(TRADE_PLAN_SCHEMA)}
     PROMPT
-
-    log("Prompting LLM for #{symbol} #{direction.to_s.upcase} plan") if NemesisBrain::VERBOSE_LOGS
-    plan = Oj.load(clean_llm_json(ask_llm(prompt, TRADE_PLAN_SCHEMA)))
-    log("Trade plan result: #{Oj.dump(plan)}") if NemesisBrain::VERBOSE_LOGS
-    plan
-  rescue StandardError => e
-    log("Trade plan generation failed: #{e.message}")
-    nil
   end
 
-  def ask_llm(prompt, schema = nil)
-    chat = RubyLLM.chat(model: NemesisBrain::REASONING_MODEL, provider: :ollama)
-    chat = chat.with_schema(schema) if schema
-    chat.ask(prompt).content
+  def macro_bias_prompt(snapshot)
+    <<~PROMPT
+      Macro environment review.
+      Funding rates: #{Oj.dump(snapshot[:funding_rates])}
+      Open interest trend: #{Oj.dump(snapshot[:open_interest])}
+      What is the dominant market bias right now?
+
+      Respond ONLY as JSON matching this schema:
+      #{Oj.dump(MACRO_BIAS_SCHEMA)}
+    PROMPT
+  end
+
+  def memory_summary(memories)
+    return "No relevant past episodes found." if memories.empty?
+
+    "Past similar episodes:\n#{memories.join("\n")}"
+  end
+
+  # Ollama's structured-output mode validates and parses the JSON for us,
+  # so this always returns the schema-shaped Hash — never raw text.
+  def ask_llm(prompt, schema)
+    @ollama.generate(prompt:, schema:, model: NemesisBrain::REASONING_MODEL)
   end
 
   def fetch_atr_pct(symbol)
-    # Fetch ATR from recent price data or use fallback
-    atr_fallback = 0.012
-    
-    begin
-      # Simple ATR calculation: average of recent true ranges
-      # In production, this should cache and update continuously
-      klines = @binance&.public_get("/fapi/v1/klines", symbol: symbol.upcase, interval: "5m", limit: 14)
-      return atr_fallback unless klines.is_a?(Array) && klines.size >= 14
-      
-      true_ranges = klines.map do |k|
-        high = k[2].to_f
-        low = k[3].to_f
-        prev_close = k[1].to_f # Approximation using open
-        tr = [high - low, (high - prev_close).abs, (low - prev_close).abs].max
-      end
-      
-      avg_tr = true_ranges.sum / true_ranges.size
-      mid_price = klines.last[4].to_f
-      (avg_tr / mid_price).clamp(0.005, 0.05)
-    rescue StandardError => e
-      log("ATR calculation failed: #{e.message}") if NemesisBrain::VERBOSE_LOGS
-      atr_fallback
-    end
+    klines = @binance&.public_get("/fapi/v1/klines", symbol: symbol.upcase, interval: "5m", limit: ATR_PERIOD + 1)
+    return ATR_FALLBACK_PCT unless klines.is_a?(Array) && klines.size >= ATR_PERIOD + 1
+
+    true_ranges = klines.each_cons(2).map { |prev_kline, kline| true_range(prev_kline, kline) }
+    average_true_range = true_ranges.sum / true_ranges.size
+    mid_price = klines.last[4].to_f
+
+    (average_true_range / mid_price).clamp(0.005, 0.05)
+  rescue StandardError => e
+    log("ATR calculation failed: #{e.message}") if NemesisBrain::VERBOSE_LOGS
+    ATR_FALLBACK_PCT
+  end
+
+  def true_range(prev_kline, kline)
+    high = kline[2].to_f
+    low = kline[3].to_f
+    prev_close = prev_kline[4].to_f
+    [high - low, (high - prev_close).abs, (low - prev_close).abs].max
   end
 
   def log(message)
     puts(NemesisBrain::Log.colorize("[#{Time.now.strftime('%H:%M:%S')}] #{message}", :cyan))
-  end
-
-  def clean_llm_json(raw)
-    raw.to_s.gsub(/^```json\n?/, "").gsub(/\n?```$/, "").strip
   end
 end

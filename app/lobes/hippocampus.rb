@@ -6,7 +6,8 @@ class Hippocampus
   COLLECTION = "nemesis_episodes"
   VECTOR_DIM = 768
 
-  def initialize
+  def initialize(ollama: NemesisBrain.ollama_client)
+    @ollama = ollama
     @memory_store = []
     @qdrant = build_qdrant_client
     ensure_collection_exists if @qdrant
@@ -28,6 +29,7 @@ class Hippocampus
         text:,
         pnl_r:,
         symbol:,
+        side: side.downcase,
         timestamp: Time.now.to_i,
         win: pnl_r >= 0
       }
@@ -48,10 +50,32 @@ class Hippocampus
     end
   end
 
-  def recent_losses(days: 1, limit: 10)
-    cutoff = (Time.now - days * 86_400).to_i
+  # All trades (wins and losses) from the last `days`, used for win-rate estimation.
+  def recent_trades(days: 7, limit: 200)
+    cutoff = trade_cutoff(days)
+
     points = if @qdrant
-               scroll_qdrant_losses(cutoff, limit)
+               scroll_qdrant(filter: { must: [{ key: "timestamp", range: { gte: cutoff } }] }, limit:)
+             else
+               @memory_store.select { |point| point[:payload][:timestamp] >= cutoff }
+             end
+
+    points.first(limit)
+  end
+
+  def recent_losses(days: 1, limit: 10)
+    cutoff = trade_cutoff(days)
+
+    points = if @qdrant
+               scroll_qdrant(
+                 filter: {
+                   must: [
+                     { key: "win", match: { value: false } },
+                     { key: "timestamp", range: { gte: cutoff } }
+                   ]
+                 },
+                 limit:
+               )
              else
                @memory_store.select do |point|
                  payload = point[:payload]
@@ -64,6 +88,10 @@ class Hippocampus
 
   private
 
+  def trade_cutoff(days)
+    (Time.now - (days * 86_400)).to_i
+  end
+
   def build_qdrant_client
     return nil unless NemesisBrain::QDRANT_ENABLED
 
@@ -74,8 +102,8 @@ class Hippocampus
   def embed(text)
     return pseudo_vector(text) unless NemesisBrain::LLM_ENABLED
 
-    RubyLLM.embed(text, model: NemesisBrain::EMBED_MODEL, provider: :ollama).vectors.first
-  rescue StandardError => e
+    @ollama.embeddings.embed(model: NemesisBrain::EMBED_MODEL, input: text)
+  rescue Ollama::Error => e
     warn "[Hippocampus] Embedding failed (#{e.message}). Using pseudo-vector."
     pseudo_vector(text)
   end
@@ -101,22 +129,17 @@ class Hippocampus
   end
 
   def recall_from_memory(market_context, limit:)
-    query = market_context.downcase
+    query_words = market_context.downcase.split
     @memory_store
-      .select { |point| point[:payload][:text].downcase.include?(query.split.first.to_s) }
+      .select { |point| query_words.any? { |word| point[:payload][:text].downcase.include?(word) } }
       .last(limit)
       .map { |point| point[:payload][:text] }
   end
 
-  def scroll_qdrant_losses(cutoff, limit)
+  def scroll_qdrant(filter:, limit:)
     @qdrant.points.scroll(
       collection_name: COLLECTION,
-      filter: {
-        must: [
-          { key: "win", match: { value: false } },
-          { key: "timestamp", range: { gte: cutoff } }
-        ]
-      },
+      filter:,
       limit:,
       with_payload: true
     ).dig("result", "points") || []

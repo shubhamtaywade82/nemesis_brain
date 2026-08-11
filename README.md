@@ -1,6 +1,6 @@
 # Nemesis: Cognitive Trading Agent for Crypto Futures
 
-A professional-grade, biologically-inspired autonomous trading system built with Ruby and Ollama Cloud APIs. Nemesis implements a cognitive architecture that mimics the structure of a human brain to make disciplined, risk-aware trading decisions on cryptocurrency futures markets.
+A professional-grade, biologically-inspired autonomous trading system built with Ruby and Ollama. Nemesis implements a cognitive architecture that mimics the structure of a human brain to make disciplined, risk-aware trading decisions on cryptocurrency futures markets. LLM reasoning is powered by the [`ollama-client`](https://github.com/shubhamtaywade82/ollama-client) gem, which gives structured, schema-validated JSON output straight from `chat`/`generate` calls — no manual JSON parsing or repair logic required.
 
 ## 🧠 Architecture Overview
 
@@ -20,7 +20,7 @@ Nemesis is designed as a **continuous cognitive system** rather than a simple re
 ### Prerequisites
 
 - Ruby 3.3+
-- Ollama Cloud API key (or local Ollama instance)
+- A local Ollama instance, or an Ollama Cloud API key
 - Binance Futures API credentials (optional for paper mode)
 
 ### Installation
@@ -39,9 +39,11 @@ cp .env.example .env
 Create a `.env` file in the root directory:
 
 ```bash
-# Ollama Configuration
-OLLAMA_API_KEY=your_api_key_here
-OLLAMA_URL=https://ollama.com/v1
+# Ollama Configuration (native API, via the ollama-client gem)
+# Local Ollama needs no API key. For Ollama Cloud, set OLLAMA_BASE_URL to
+# https://ollama.com and OLLAMA_API_KEY (or a comma-separated OLLAMA_API_KEYS pool).
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_API_KEY=
 
 # Model Selection
 NEMESIS_REASONING_MODEL=gemma4:31b
@@ -138,7 +140,7 @@ Deterministic risk management layer that:
 Stores and retrieves trade experiences using vector embeddings:
 - **Qdrant** for production persistence
 - **In-memory fallback** for development/paper mode
-- Embeddings generated via Ollama Cloud API
+- Embeddings generated via `ollama-client` (local or cloud, depending on `OLLAMA_BASE_URL`)
 - Recall based on semantic similarity to current market context
 
 ### Motor Cortex (Execution Trader)
@@ -255,4 +257,4 @@ Contributions welcome! Please read our contributing guidelines before submitting
 
 ---
 
-Built with 💎 Ruby and 🦙 Ollama Cloud
+Built with 💎 Ruby and 🦙 Ollama

@@ -4,6 +4,7 @@ require "faraday"
 require "faraday/retry"
 require "openssl"
 require "oj"
+require "securerandom"
 
 class BinanceFuturesClient
   class TradeDisabledError < StandardError; end

@@ -4,8 +4,7 @@ source "https://rubygems.org"
 
 ruby ">= 3.1.0"
 
-gem "ruby_llm", "~> 1.2"
-gem "langchainrb", "~> 0.8"
+gem "ollama-client", "~> 1.3"
 gem "oj", "~> 3.16"
 
 gem "wisper", "~> 2.0"
@@ -25,5 +24,4 @@ gem "descriptive_statistics"
 
 group :development, :test do
   gem "rspec", "~> 3.13"
-  gem "dotenv", "~> 3.1"
 end
