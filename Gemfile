@@ -2,7 +2,7 @@
 
 source "https://rubygems.org"
 
-ruby ">= 3.3.0"
+ruby ">= 3.1.0"
 
 gem "ruby_llm", "~> 1.2"
 gem "langchainrb", "~> 0.8"

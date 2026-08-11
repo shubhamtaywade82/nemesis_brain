@@ -25,8 +25,8 @@ module NemesisBrain
       binance = build_binance_client
       hippocampus = Hippocampus.new
       sensory = SensoryCortex.new(nervous_system)
-      PrefrontalCortex.new(nervous_system:, hippocampus:)
-      Amygdala.new(nervous_system:, equity:)
+      PrefrontalCortex.new(nervous_system:, hippocampus:, binance:)
+      Amygdala.new(nervous_system:, equity:, hippocampus:)
       MotorCortex.new(nervous_system:, binance:)
 
       alpha_wave = Concurrent::TimerTask.new(execution_interval: 60) do

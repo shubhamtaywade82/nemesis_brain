@@ -23,9 +23,10 @@ class PrefrontalCortex
     required: %w[thesis symbol side entry_zone invalidation_price targets setup_grade confidence]
   }.freeze
 
-  def initialize(nervous_system:, hippocampus:)
+  def initialize(nervous_system:, hippocampus:, binance: nil)
     @ns = nervous_system
     @memory = hippocampus
+    @binance = binance
     @ns.subscribe(self)
   end
 
@@ -126,8 +127,30 @@ class PrefrontalCortex
     chat.ask(prompt).content
   end
 
-  def fetch_atr_pct(_symbol)
-    0.012
+  def fetch_atr_pct(symbol)
+    # Fetch ATR from recent price data or use fallback
+    atr_fallback = 0.012
+    
+    begin
+      # Simple ATR calculation: average of recent true ranges
+      # In production, this should cache and update continuously
+      klines = @binance&.public_get("/fapi/v1/klines", symbol: symbol.upcase, interval: "5m", limit: 14)
+      return atr_fallback unless klines.is_a?(Array) && klines.size >= 14
+      
+      true_ranges = klines.map do |k|
+        high = k[2].to_f
+        low = k[3].to_f
+        prev_close = k[1].to_f # Approximation using open
+        tr = [high - low, (high - prev_close).abs, (low - prev_close).abs].max
+      end
+      
+      avg_tr = true_ranges.sum / true_ranges.size
+      mid_price = klines.last[4].to_f
+      (avg_tr / mid_price).clamp(0.005, 0.05)
+    rescue StandardError => e
+      log("ATR calculation failed: #{e.message}") if NemesisBrain::VERBOSE_LOGS
+      atr_fallback
+    end
   end
 
   def log(message)

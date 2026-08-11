@@ -10,9 +10,10 @@ class Amygdala
 
   attr_reader :desk_open, :session_pnl
 
-  def initialize(nervous_system:, equity:)
+  def initialize(nervous_system:, equity:, hippocampus: nil)
     @ns = nervous_system
     @equity = equity
+    @memory = hippocampus
     @session_pnl = 0.0
     @desk_open = true
     @ns.subscribe(self)
@@ -37,7 +38,7 @@ class Amygdala
       return
     end
 
-    win_rate = 0.45
+    win_rate = fetch_win_rate(plan["side"])
     kelly_fraction = (win_rate - ((1 - win_rate) / rr_ratio)) * 0.25
     kelly_fraction = kelly_fraction.clamp(0.0, MAX_RISK_PER_TRADE)
 
@@ -73,6 +74,27 @@ class Amygdala
   end
 
   private
+
+  def fetch_win_rate(side)
+    losses = @memory&.recent_losses(days: 7, limit: 100) || []
+    return 0.45 if losses.empty?
+
+    side_losses = losses.count do |point|
+      payload = point.is_a?(Hash) && point["payload"] ? point["payload"] : point[:payload]
+      (payload["symbol"] || "").include?("BTC") && 
+      ((side == "LONG" && payload["side"] == "long") || (side == "SHORT" && payload["side"] == "short"))
+    end
+
+    total = losses.count do |point|
+      payload = point.is_a?(Hash) && point["payload"] ? point["payload"] : point[:payload]
+      (payload["symbol"] || "").include?("BTC")
+    end
+
+    return 0.45 if total.zero?
+
+    win_count = total - side_losses
+    (win_count.to_f / total).clamp(0.3, 0.7)
+  end
 
   def correlation_penalty(_side)
     0.0
