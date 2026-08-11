@@ -2,9 +2,9 @@
 
 require "spec_helper"
 
-RSpec.describe PrefrontalCortex do
-  let(:nervous_system) { NervousSystem.new }
-  let(:hippocampus) { instance_double(Hippocampus, recall: []) }
+RSpec.describe PortfolioManager do
+  let(:event_bus) { EventBus.new }
+  let(:journal) { instance_double(TradeJournal, similar_trades: []) }
   let(:generated_plans) { [] }
 
   before do
@@ -13,7 +13,7 @@ RSpec.describe PrefrontalCortex do
       define_method(:trade_plan_generated) { |payload| @buffer << payload }
     end.new(generated_plans)
 
-    nervous_system.subscribe(listener)
+    event_bus.subscribe(listener)
   end
 
   describe "#tape_signal_detected" do
@@ -30,15 +30,15 @@ RSpec.describe PrefrontalCortex do
     it "skips plan generation without calling the LLM when disabled" do
       ollama = instance_double(Ollama::Client)
       expect(ollama).not_to receive(:generate)
-      cortex = described_class.new(nervous_system:, hippocampus:, ollama:)
+      manager = described_class.new(event_bus:, journal:, ollama:)
 
-      cortex.tape_signal_detected(signal)
+      manager.tape_signal_detected(signal)
 
       expect(generated_plans).to be_empty
     end
 
     it "broadcasts a grade-A plan produced through the injected Ollama client" do
-      stub_const("NemesisBrain::LLM_ENABLED", true)
+      stub_const("Nemesis::LLM_ENABLED", true)
       plan = {
         "thesis" => "Absorption long", "symbol" => "BTCUSDT", "side" => "LONG",
         "entry_zone" => { "low" => 49_900, "high" => 50_000 },
@@ -46,18 +46,18 @@ RSpec.describe PrefrontalCortex do
         "setup_grade" => "A", "confidence" => 0.8
       }
       ollama = instance_double(Ollama::Client, generate: plan)
-      cortex = described_class.new(nervous_system:, hippocampus:, ollama:)
+      manager = described_class.new(event_bus:, journal:, ollama:)
 
-      cortex.tape_signal_detected(signal)
+      manager.tape_signal_detected(signal)
 
       expect(generated_plans).to eq([plan])
       expect(ollama).to have_received(:generate).with(
-        hash_including(schema: PrefrontalCortex::TRADE_PLAN_SCHEMA, model: NemesisBrain::REASONING_MODEL)
+        hash_including(schema: PortfolioManager::TRADE_PLAN_SCHEMA, model: Nemesis::REASONING_MODEL)
       )
     end
 
     it "does not broadcast plans graded below A" do
-      stub_const("NemesisBrain::LLM_ENABLED", true)
+      stub_const("Nemesis::LLM_ENABLED", true)
       plan = {
         "thesis" => "Weak setup", "symbol" => "BTCUSDT", "side" => "LONG",
         "entry_zone" => { "low" => 49_900, "high" => 50_000 },
@@ -65,20 +65,20 @@ RSpec.describe PrefrontalCortex do
         "setup_grade" => "C", "confidence" => 0.3
       }
       ollama = instance_double(Ollama::Client, generate: plan)
-      cortex = described_class.new(nervous_system:, hippocampus:, ollama:)
+      manager = described_class.new(event_bus:, journal:, ollama:)
 
-      cortex.tape_signal_detected(signal)
+      manager.tape_signal_detected(signal)
 
       expect(generated_plans).to be_empty
     end
 
     it "recovers when the Ollama client raises" do
-      stub_const("NemesisBrain::LLM_ENABLED", true)
+      stub_const("Nemesis::LLM_ENABLED", true)
       ollama = instance_double(Ollama::Client)
       allow(ollama).to receive(:generate).and_raise(Ollama::TimeoutError, "timed out")
-      cortex = described_class.new(nervous_system:, hippocampus:, ollama:)
+      manager = described_class.new(event_bus:, journal:, ollama:)
 
-      expect { cortex.tape_signal_detected(signal) }.not_to raise_error
+      expect { manager.tape_signal_detected(signal) }.not_to raise_error
       expect(generated_plans).to be_empty
     end
   end

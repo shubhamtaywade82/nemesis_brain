@@ -2,18 +2,18 @@
 
 require "securerandom"
 
-class Hippocampus
-  COLLECTION = "nemesis_episodes"
+class TradeJournal
+  COLLECTION = "nemesis_trades"
   VECTOR_DIM = 768
 
-  def initialize(ollama: NemesisBrain.ollama_client)
+  def initialize(ollama: Nemesis.ollama_client)
     @ollama = ollama
-    @memory_store = []
+    @trade_log = []
     @qdrant = build_qdrant_client
     ensure_collection_exists if @qdrant
   end
 
-  def store_episode(symbol:, side:, entry_price:, exit_price:, pnl_r:, thesis:, context:)
+  def record_trade(symbol:, side:, entry_price:, exit_price:, pnl_r:, thesis:, context:)
     outcome = pnl_r >= 0 ? "WIN (#{pnl_r.round(2)}R)" : "LOSS (#{pnl_r.round(2)}R)"
     text = <<~TEXT.strip
       Trade: #{symbol} #{side.upcase} at #{entry_price} -> #{exit_price}
@@ -22,7 +22,7 @@ class Hippocampus
       Outcome: #{outcome}
     TEXT
 
-    point = {
+    entry = {
       id: SecureRandom.uuid,
       vector: embed(text),
       payload: {
@@ -36,17 +36,17 @@ class Hippocampus
     }
 
     if @qdrant
-      @qdrant.points.upsert(collection_name: COLLECTION, points: [point])
+      @qdrant.points.upsert(collection_name: COLLECTION, points: [entry])
     else
-      @memory_store << point
+      @trade_log << entry
     end
   end
 
-  def recall(market_context, limit: 4, min_score: 0.72)
+  def similar_trades(market_context, limit: 4, min_score: 0.72)
     if @qdrant
-      recall_from_qdrant(market_context, limit:, min_score:)
+      similar_trades_from_qdrant(market_context, limit:, min_score:)
     else
-      recall_from_memory(market_context, limit:)
+      similar_trades_from_log(market_context, limit:)
     end
   end
 
@@ -54,36 +54,36 @@ class Hippocampus
   def recent_trades(days: 7, limit: 200)
     cutoff = trade_cutoff(days)
 
-    points = if @qdrant
-               scroll_qdrant(filter: { must: [{ key: "timestamp", range: { gte: cutoff } }] }, limit:)
-             else
-               @memory_store.select { |point| point[:payload][:timestamp] >= cutoff }
-             end
+    entries = if @qdrant
+                scroll_qdrant(filter: { must: [{ key: "timestamp", range: { gte: cutoff } }] }, limit:)
+              else
+                @trade_log.select { |entry| entry[:payload][:timestamp] >= cutoff }
+              end
 
-    points.first(limit)
+    entries.first(limit)
   end
 
   def recent_losses(days: 1, limit: 10)
     cutoff = trade_cutoff(days)
 
-    points = if @qdrant
-               scroll_qdrant(
-                 filter: {
-                   must: [
-                     { key: "win", match: { value: false } },
-                     { key: "timestamp", range: { gte: cutoff } }
-                   ]
-                 },
-                 limit:
-               )
-             else
-               @memory_store.select do |point|
-                 payload = point[:payload]
-                 !payload[:win] && payload[:timestamp] >= cutoff
-               end
-             end
+    entries = if @qdrant
+                scroll_qdrant(
+                  filter: {
+                    must: [
+                      { key: "win", match: { value: false } },
+                      { key: "timestamp", range: { gte: cutoff } }
+                    ]
+                  },
+                  limit:
+                )
+              else
+                @trade_log.select do |entry|
+                  payload = entry[:payload]
+                  !payload[:win] && payload[:timestamp] >= cutoff
+                end
+              end
 
-    points.first(limit)
+    entries.first(limit)
   end
 
   private
@@ -93,18 +93,18 @@ class Hippocampus
   end
 
   def build_qdrant_client
-    return nil unless NemesisBrain::QDRANT_ENABLED
+    return nil unless Nemesis::QDRANT_ENABLED
 
     require "qdrant"
     Qdrant::Client.new(url: ENV["QDRANT_URL"], api_key: ENV["QDRANT_API_KEY"])
   end
 
   def embed(text)
-    return pseudo_vector(text) unless NemesisBrain::LLM_ENABLED
+    return pseudo_vector(text) unless Nemesis::LLM_ENABLED
 
-    @ollama.embeddings.embed(model: NemesisBrain::EMBED_MODEL, input: text)
+    @ollama.embeddings.embed(model: Nemesis::EMBED_MODEL, input: text)
   rescue Ollama::Error => e
-    warn "[Hippocampus] Embedding failed (#{e.message}). Using pseudo-vector."
+    warn "[TradeJournal] Embedding failed (#{e.message}). Using pseudo-vector."
     pseudo_vector(text)
   end
 
@@ -113,7 +113,7 @@ class Hippocampus
     Array.new(VECTOR_DIM) { |index| Math.sin(seed + index) }
   end
 
-  def recall_from_qdrant(market_context, limit:, min_score:)
+  def similar_trades_from_qdrant(market_context, limit:, min_score:)
     vector = embed(market_context)
     results = @qdrant.points.search(
       collection_name: COLLECTION,
@@ -128,12 +128,12 @@ class Hippocampus
     end
   end
 
-  def recall_from_memory(market_context, limit:)
+  def similar_trades_from_log(market_context, limit:)
     query_words = market_context.downcase.split
-    @memory_store
-      .select { |point| query_words.any? { |word| point[:payload][:text].downcase.include?(word) } }
+    @trade_log
+      .select { |entry| query_words.any? { |word| entry[:payload][:text].downcase.include?(word) } }
       .last(limit)
-      .map { |point| point[:payload][:text] }
+      .map { |entry| entry[:payload][:text] }
   end
 
   def scroll_qdrant(filter:, limit:)

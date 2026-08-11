@@ -2,8 +2,8 @@
 
 require "spec_helper"
 
-RSpec.describe Amygdala do
-  let(:nervous_system) { NervousSystem.new }
+RSpec.describe RiskManager do
+  let(:event_bus) { EventBus.new }
   let(:approved_orders) { [] }
 
   before do
@@ -13,14 +13,14 @@ RSpec.describe Amygdala do
       define_method(:desk_closed) { |*_args| nil }
     end.new(approved_orders)
 
-    nervous_system.subscribe(listener)
+    event_bus.subscribe(listener)
   end
 
   describe "trade plan gating" do
     it "approves A-grade plans with sufficient risk-reward" do
-      amygdala = described_class.new(nervous_system:, equity: 10_000)
+      risk_manager = described_class.new(event_bus:, equity: 10_000)
 
-      amygdala.trade_plan_generated(
+      risk_manager.trade_plan_generated(
         "symbol" => "BTCUSDT",
         "side" => "LONG",
         "entry_zone" => { "low" => 49_900, "high" => 50_000 },
@@ -35,9 +35,9 @@ RSpec.describe Amygdala do
     end
 
     it "rejects plans below minimum risk-reward" do
-      amygdala = described_class.new(nervous_system:, equity: 10_000)
+      risk_manager = described_class.new(event_bus:, equity: 10_000)
 
-      amygdala.trade_plan_generated(
+      risk_manager.trade_plan_generated(
         "symbol" => "BTCUSDT",
         "side" => "LONG",
         "entry_zone" => { "low" => 49_950, "high" => 50_000 },
@@ -50,24 +50,24 @@ RSpec.describe Amygdala do
     end
 
     it "closes the desk after daily drawdown limit" do
-      amygdala = described_class.new(nervous_system:, equity: 10_000)
+      risk_manager = described_class.new(event_bus:, equity: 10_000)
 
-      amygdala.trade_closed({ pnl_usd: -350 })
+      risk_manager.trade_closed({ pnl_usd: -350 })
 
-      expect(amygdala.desk_open).to be(false)
+      expect(risk_manager.desk_open).to be(false)
     end
 
-    it "sizes risk down after a run of same-side losses recorded in memory" do
-      hippocampus = Hippocampus.new
+    it "sizes risk down after a run of same-side losses recorded in the journal" do
+      journal = TradeJournal.new
       3.times do
-        hippocampus.store_episode(
+        journal.record_trade(
           symbol: "BTCUSDT", side: "long", entry_price: 50_000, exit_price: 49_500,
           pnl_r: -1.0, thesis: "Absorption long", context: "High delta, price pinned"
         )
       end
-      amygdala = described_class.new(nervous_system:, equity: 10_000, hippocampus:)
+      risk_manager = described_class.new(event_bus:, equity: 10_000, journal:)
 
-      amygdala.trade_plan_generated(
+      risk_manager.trade_plan_generated(
         "symbol" => "BTCUSDT",
         "side" => "LONG",
         "entry_zone" => { "low" => 49_900, "high" => 50_000 },
